@@ -5,3 +5,4 @@ artifacts/
 .venv/
 .DS_Store
 dist/
+samples/

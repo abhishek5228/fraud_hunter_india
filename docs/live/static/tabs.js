@@ -34,7 +34,101 @@ function tabbing() {
     $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $$(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
     if (b.dataset.tab === "lab") lab(); if (b.dataset.tab === "model") model(); if (b.dataset.tab === "play") play();
+    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab();
   }));
+}
+
+/* ------------------------------------------------------------ review queue */
+let revT = null, revSel = null;
+async function review() {
+  if (!revT) revT = setInterval(() => { if ($("#tab-review").classList.contains("on")) loadQueue(); }, 5000);
+  loadQueue();
+}
+async function loadQueue() {
+  let q; try { q = await api("/api/queue"); } catch (e) { $("#rlist").replaceChildren(el("div", { class: "empty" }, e.message)); return; }
+  $("#rcount").textContent = q.open + " open";
+  const rows = q.cases.map(c => {
+    const r = el("div", { class: "row" + (revSel === c.id ? " sel" : ""), tabindex: 0, role: "button", style: "grid-template-columns:54px 1fr 70px 74px" },
+      el("div", { class: "t" }, stime(c.ts)),
+      el("div", { class: "m" }, el("div", null, el("b", null, c.cat.replace("_", " ")), " · ", c.uid), el("div", { class: "sub" }, (RAILN[c.chan] || c.chan) + " · " + c.city + (c.hits[0] ? " · " + c.hits[0] : ""))),
+      el("div", { class: "a" }, money(c.amt, c.amt < 100 ? 2 : 0)), el("div", { style: "text-align:right" }, el("span", { class: "tag d" + c.dec }, DN[c.dec])));
+    const go = async () => { revSel = c.id; $$("#rlist .row").forEach(x => x.classList.remove("sel")); r.classList.add("sel"); await openCase(c.id); };
+    r.addEventListener("click", go); r.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    return r;
+  });
+  $("#rlist").replaceChildren(...(rows.length ? rows : [el("div", { class: "empty" }, "Nothing waiting. Launch an attack on the Live ops tab to see cases arrive.")]));
+}
+async function openCase(id) {
+  try {
+    if (!S.cfg) S.cfg = await api("/api/policy");
+    renderCase($("#rinsp"), await api("/api/case/" + id), S.cfg, { actions: true, onDone: () => { revSel = null; setTimeout(() => { loadQueue(); $("#rinsp").replaceChildren(el("div", { class: "empty" }, "Recorded. Pick the next payment.")); }, 700); } });
+  } catch (e) { $("#rinsp").replaceChildren(el("div", { class: "empty" }, "That case has aged out of the engine's recent-case window.")); }
+}
+
+/* ------------------------------------------------------------ backtest */
+let btId = null, btBound = false;
+function backtestTab() {
+  if (btBound) return; btBound = true;
+  const demo = !!window.FH_DEMO;
+  if (demo) { $("#bt-file").disabled = true; $("#bt-run").disabled = true; $("#bt-status").textContent = "Demo mode: uploads need the backend. The sample report below was recorded from the real engine."; }
+  $("#bt-sample").onclick = () => runBt(null);
+  $("#bt-run").onclick = () => { const f = $("#bt-file").files[0]; if (!f) { $("#bt-status").textContent = "Choose a CSV file first."; return; } runBt(f); };
+  if (demo) runBt(null);
+}
+async function runBt(file) {
+  const st = $("#bt-status"); st.textContent = file ? "Reading " + file.name + "…" : "Running the sample (about 10 seconds)…";
+  $("#bt-out").style.opacity = 0.5;
+  try {
+    let r;
+    if (file) {
+      const txt = await file.text(); st.textContent = "Replaying " + (txt.split("\n").length - 1).toLocaleString("en-IN") + " rows…";
+      const resp = await fetch((window.FH_API || "") + "/api/backtest", { method: "POST", headers: hdr({ "content-type": "text/csv" }), body: txt });
+      if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).detail || "Backtest failed (" + resp.status + ")");
+      r = await resp.json();
+    } else r = await api("/api/backtest/sample");
+    btId = r.id; st.textContent = "Done in " + r.seconds + " s."; renderBt(r);
+  } catch (e) { st.textContent = e.message; }
+  $("#bt-out").style.opacity = 1;
+}
+function renderBt(r) {
+  const out = $("#bt-out"), d = r.decisions, lab = r.labelled, I = r.impact, c = I && I.cur;
+  const tile = (l, v, s, k) => el("div", { class: "kpi " + (k || "") }, el("div", { class: "l" }, l), el("div", { class: "v" }, v), el("div", { class: "s" }, s));
+  const tiles = lab ? el("div", { class: "big" },
+    tile("Net saving vs. approving everything", mk(I.allow.cost - c.cost), `cost ${mk(c.cost)} against ${mk(I.allow.cost)}`, "good"),
+    tile("Fraud caught", pct(c.caught, 1), `${mk(r.fraud_amount - c.leak)} of ${mk(r.fraud_amount)} stopped · ${c.bps.toFixed(1)} bps leaks`, ""),
+    tile("Good customers touched", pct(c.touched, 2), `${pct(c.declined_legit, 2)} declined outright`, c.touched > 0.05 ? "warn" : ""),
+    tile("Ranking quality", "AUC " + (r.auc || 0).toFixed(3), `average precision ${(r.ap || 0).toFixed(3)} · ${r.fraud_n} fraud`, "")) :
+    el("div", { class: "big" }, tile("Payments scored", r.scored.toLocaleString("en-IN"), `${r.warm.toLocaleString("en-IN")} used as warm-up`, ""),
+      tile("Approved", pct(d.approve / r.scored, 1), `${d.approve.toLocaleString("en-IN")} payments`, ""), tile("Challenged", pct(d.step / r.scored, 1), `${d.step.toLocaleString("en-IN")} payments`, "warn"),
+      tile("Declined", pct(d.decline / r.scored, 1), `${mk(r.flagged_amount)} flagged in total`, "bad"));
+  const kids = [tiles];
+  if (r.warnings && r.warnings.length) kids.push(el("div", { class: "card" }, el("div", { class: "body" }, r.warnings.map(w => el("div", { class: "truth warn", style: "margin:0 0 6px" }, w)))));
+  if (r.problems && r.problems.length) kids.push(el("div", { class: "card" }, el("h3", null, "Rows that were skipped or adjusted"), el("div", { class: "body note" }, r.problems.map(p => el("div", null, p)))));
+  if (lab) {
+    const bars = [["This engine", c.cost, "#2b47ff"], ["Best single threshold (picked with hindsight)", I.best1.cost, "#9aa8bd"], ["Untuned: decline above 50%", I.naive.cost, "#c3ccdb"], ["Approve everything", I.allow.cost, "#c3ccdb"]];
+    const mx = Math.max(...bars.map(b => b[1])), cb = el("div", { class: "econ", style: "grid-template-columns:270px 1fr 80px" });
+    bars.forEach(([n, v, col], i) => cb.append(el("div", { class: i === 0 ? "pick" : "" }, el("span", { class: i === 0 ? "nm" : "" }, n)), el("div", { class: "bar" }, el("i", { style: `width:${100 * v / mx}%;background:${col}` })), el("div", { class: "v" }, mk(v))));
+    kids.push(el("div", { class: "card" }, el("h3", null, "What it would have cost", el("span", { class: "note sp" }, `${r.scored.toLocaleString("en-IN")} payments after a ${r.warmup_days}-day warm-up`)),
+      el("div", { class: "body" }, cb, el("div", { class: "note", style: "margin-top:8px" }, "Cost = fraud rupees that got through + fixed fraud fees + sales and goodwill lost to declines and abandoned challenges + the cost of each challenge. The single threshold was tuned on this same file, which flatters it."))));
+  }
+  const rail = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Rail"), el("th", { class: "r" }, "Payments"), lab ? el("th", { class: "r" }, "Fraud") : null, lab ? el("th", { class: "r" }, "Caught") : null, el("th", { class: "r" }, lab ? "Good touched" : "Flagged"))),
+    el("tbody", null, r.by_rail.map(x => el("tr", null, el("td", null, RAILN[x.rail] || x.rail), el("td", { class: "r" }, x.n.toLocaleString("en-IN")), lab ? el("td", { class: "r" }, x.fraud) : null, lab ? el("td", { class: "r" }, x.fraud ? pct(x.caught, 0) : "–") : null, el("td", { class: "r" }, pct(lab ? x.touched : x.flagged, 1))))));
+  const rs = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Reason"), el("th", { class: "r" }, "Flagged"), lab ? el("th", null, "Actually fraud") : null, lab ? el("th", { class: "r" }, "") : null)),
+    el("tbody", null, r.reasons.map(x => el("tr", null, el("td", { class: "mono" }, x.code === "MODEL_ONLY" ? "model score only" : x.code), el("td", { class: "r" }, x.n.toLocaleString("en-IN")), lab ? el("td", null, hbar(x.fraud_share, true)) : null, lab ? el("td", { class: "r" }, pct(x.fraud_share, 0)) : null))));
+  kids.push(el("div", { class: "grid2" }, el("div", { class: "card" }, el("h3", null, "By payment rail"), el("div", { class: "body" }, rail)),
+    el("div", { class: "card" }, el("h3", null, "Why payments were flagged", el("span", { class: "note sp" }, lab ? "a low 'actually fraud' bar is a false-alarm source" : "")), el("div", { class: "body" }, rs))));
+  const top = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Line"), el("th", null, "Customer"), el("th", null, "Rail"), el("th", { class: "r" }, "Amount"), el("th", { class: "r" }, "Risk"), el("th", null, "Decision"), el("th", null, "Reason"), lab ? el("th", null, "Truth") : null)),
+    el("tbody", null, r.top_rows.map(x => el("tr", null, el("td", { class: "mono" }, x.line), el("td", { class: "mono" }, x.uid), el("td", null, RAILN[x.chan] || x.chan), el("td", { class: "r" }, money(x.amt, x.amt < 100 ? 2 : 0)), el("td", { class: "r" }, pr(x.p)),
+      el("td", null, el("span", { class: "tag d" + x.dec }, DN[x.dec])), el("td", { class: "mono" }, x.codes[0] || "model"), lab ? el("td", null, x.label === 1 ? "fraud" : x.label === 0 ? "good" : "") : null))));
+  const dl = !window.FH_DEMO ? el("button", { class: "btn sm sp", onclick: downloadBt }, "Download every decision (CSV)") : null;
+  kids.push(el("div", { class: "card" }, el("h3", null, "The 15 riskiest payments", dl), el("div", { class: "body" }, top)));
+  kids.push(el("div", { class: "note", style: "padding:0 4px" }, `Model ${r.model} · ${r.model_note}. Replayed in an isolated copy of the engine, nothing live was changed.`));
+  out.replaceChildren(...kids);
+}
+async function downloadBt() {
+  const resp = await fetch((window.FH_API || "") + "/api/backtest/" + btId + "/csv", { headers: hdr() });
+  if (!resp.ok) { $("#bt-status").textContent = "That result has expired; run the backtest again."; return; }
+  const a = el("a", { href: URL.createObjectURL(await resp.blob()), download: "decisions-" + btId + ".csv" }); document.body.append(a); a.click(); a.remove();
 }
 
 /* ------------------------------------------------------------ policy lab */

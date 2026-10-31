@@ -10,7 +10,7 @@ All data is synthetic. The numbers below show the engineering, not real-world pe
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # then open http://localhost:8000
-python -m pytest -q tests                   # 24 tests
+python -m pytest -q tests                   # 30 tests
 ```
 Or `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`.
 
@@ -35,6 +35,12 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 |---|---|
 | **Live ops.** Simulated traffic with ground-truth KPIs, an India map, per-attack detection, and the drift monitor. Launch any attack from the top bar. Click a payment for the full explanation: a decision ruler whose zones move with the amount and rail, exact factor contributions, expected cost of each action, and what the customer sees in English or Hindi. | ![](docs/drift.png) |
 
+**Review.** The analyst queue: payments the engine challenged or declined that nobody has confirmed. Confirm fraud (optionally blocking the device, network and payee) or mark legitimate; the answer feeds the engine and the audit log.
+
+**Backtest.** The practical part. Upload a CSV of past payments and the engine replays it in an isolated copy, then reports what it would have caught, who it would have bothered, why, and the rupees saved. `python -m fh.backtest file.csv --out decisions.csv` does the same from the command line.
+
+![Backtest report](docs/backtest.png)
+
 **Policy lab.** Move the business costs (fraud fee, cost of declining a good customer, challenge friction, risk aversion) and the held-out period is re-decided instantly. It compares against the best *tuned* thresholds, not a straw man.
 
 ![Policy lab](docs/lab.png)
@@ -42,6 +48,8 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 **Playground.** Compose a payment or run a scenario (SIM-swap drain, vishing with screen-share, a payee four strangers just paid, a teleporting card) and see the decision, the rules that fired and the customer message.
 
 ![Playground](docs/play.png)
+
+**Video:** [`docs/demo.mp4`](docs/demo.mp4), a 2-minute captioned walkthrough filmed from the real UI. Talk track and Q&A prep in [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
 
 **Model card.** AUC, average precision, recall at fixed false-alarm rates, calibration, importance, the learned shape of every feature, who gets flagged, and a limitations list.
 
@@ -58,6 +66,21 @@ One frontend, three ways to host it. [DEPLOY.md](DEPLOY.md) has the details, the
 | Static demo of real recorded decisions | `python tools/build_site.py --demo` | None |
 
 `render.yaml` is a one-click Render blueprint. The demo build also produces a single 3 MB HTML file that runs from disk.
+
+## Making it practical
+
+| What | How |
+|---|---|
+| **Try it on your history** | `fh/backtest.py`, `POST /api/backtest` (CSV body) and the Backtest tab. Format and a 45-day sample are in the tab and in the module docstring. |
+| **API key** | Set `FH_API_KEY` and every integration endpoint (score, confirm, feedback, backtest, queue, audit, policy changes) requires an `X-API-Key` header. Unset, the API is open, which is for development only. |
+| **Audit log** | Every API score, confirmation, analyst decision, policy change and backtest is written to SQLite (`FH_AUDIT_DB`) with the model version. `GET /api/audit`. |
+| **Remembering state** | The feature store is snapshotted every two minutes and on shutdown, and restored on start. On a host with an ephemeral disk this survives a restart but not a redeploy. |
+| **Two-phase step-up** | `score`, then `confirm`. A challenged payment does not make the engine trust the device until the customer passes. |
+| **Review queue** | `GET /api/queue` and the Review tab. |
+
+**What the backtest taught me.** My first run on a fresh 5-day file touched 17% of good customers, against 2.7% in my normal evaluation. Cause: the engine judges each payment against that customer's own history, and some rules (payee fan-in) assume a mature store. On a young store every payment to a friend looks like a stranger paying a mule. So the tool uses a warm-up of up to three weeks, warns when a file is short, and the docs say to give it a month or more. A second run revealed a gap in my own file format: a complaint from a customer who was *tricked* into paying must taint the payee, not the victim's own phone, so the `label` column has a separate value (2) for that. Without it, every scam victim's device was blacklisted.
+
+On the 45-day sample (36k scored payments, 604 fraud) it catches 99.0%, touches 3.8% of good customers, declines 0.22% outright, and costs about Rs 0.97 lakh against Rs 1.04 crore for approving everything. It also shows its misses: payee fan-in flagged 377 payments that were all good, and IMPS transfers touch 20% of good customers.
 
 ## Architecture
 

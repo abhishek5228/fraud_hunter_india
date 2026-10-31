@@ -172,3 +172,7 @@ canvas#map{width:100%;height:210px;display:block;border-radius:0 0 10px 10px}
 .ctl{gap:10px}.ctl input[type=range]{width:78px}
 @media (max-width:1780px){.brand small{display:none}}
 @media (max-width:1500px){.ctl label{font-size:0}.ctl label input{font-size:13px}}
+
+@media (max-width:1780px){.ctl label{font-size:0}.ctl label input{font-size:13px}.top{gap:10px}}
+@media (max-width:1500px){.ctl input[type=range]{width:60px}.tabs button{padding:8px 10px}.brand div{font-size:14px}}
+.top{flex-wrap:nowrap;overflow:hidden}

@@ -83,10 +83,24 @@ curl -X POST $API/api/feedback -H 'content-type: application/json' -d '{"id":"t0
 
 Only an approved payment, or a challenged one confirmed as passed, updates the customer's profile. Every attempt still counts toward velocity and the device, network and payee graphs. Send `sim` (hours since a SIM change), `rat` (screen-share or remote-access detected) and `coll` (approving a collect request) when your telemetry has them; they default to "unknown".
 
+## Settings
+
+| Variable | Default | What it does |
+|---|---|---|
+| `FH_API_KEY` | unset (open) | If set, integration endpoints need an `X-API-Key` header. Health stays open. |
+| `FH_ORIGINS` | `*` | Comma-separated origins allowed to call the API from a browser. Lock it to your frontend. |
+| `FH_AUDIT_DB` | `artifacts/audit.db` | Where the audit log lives. Point it at a persistent disk. |
+| `FH_STATE` | `1` | Set `0` to stop saving and restoring the feature store snapshot. |
+| `PORT` | `8000` | The container honours it. |
+
+A browser frontend cannot hold an API key safely: anything in `static/config.js` is visible to every visitor. Use `FH_API_KEY` for server-to-server calls (your payment system to the engine), and keep the public demo open and simulated.
+
+**Files on a free host are usually erased on redeploy.** That includes the audit log and the state snapshot. For anything you need to keep, attach a persistent disk and point `FH_AUDIT_DB` at it.
+
 ## Before real traffic
 
 - **This is trained on synthetic data.** Retrain on your own history (`fh/train.py` is the template), and expect to rebuild the cost settings with your finance team.
-- **No authentication.** Put it behind your gateway, or add an API key check in `fh/api.py`. Lock `FH_ORIGINS`.
+- **Authentication is one shared key.** `FH_API_KEY` is enough for a pilot; for production use your gateway, per-client keys and role-based access. There is no rate limiting. Lock `FH_ORIGINS`.
 - **State is in memory.** A restart loses the live feature store (the baked-in snapshot is restored). To scale out, partition by customer id so one customer always hits one instance, or move the store to Redis.
 - **Personal data.** The engine needs device ids, IPs and payee ids. Treat them under your data-protection obligations; none of this repository contains real data.
 
