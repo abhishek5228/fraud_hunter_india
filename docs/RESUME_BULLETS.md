@@ -17,9 +17,14 @@ Pick two or three. Each uses only numbers that are measured and reproducible fro
 ## One-line version
 Built and tested a real-time UPI fraud-decision engine on simulated data: exact explanations, cost-aware decisions, a backtest tool and a live dashboard.
 
+## Added: real-time integrations
+- Connected the engine to Razorpay test-mode webhooks (HMAC-verified, payer identity hashed), with IP/network intelligence and Telegram alerts; decisions return in about 0.2 ms engine time.
+- Found by hand that a Rs 25 lakh UPI payment from a new customer was approved (model extrapolation); fixed with escalate-only guardrails and a regression test. Say this one out loud: it shows testing, not just building.
+
 ## Do not claim
 - That it detects real fraud or has been used on real payments. It was trained and tested on simulated data only.
 - The headline numbers without "simulated". Judges and interviewers will ask.
+- That the Razorpay link means it works on live money. It ran on test-mode payments only.
 - Production readiness. It has an API key, an audit log and a review queue, but no rate limiting, role-based access or horizontal scaling.
 
 ## What to say when asked about the red team

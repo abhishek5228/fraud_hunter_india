@@ -38,6 +38,9 @@ Do: **Model card**, scroll to the limits.
 Say: "Everything is synthetic, because real bank data is not public. A plain logistic model scores as well as mine on this data, and the README says so. The weak spot is scams where nothing technical looks odd. The next step is to replace the simulator with real complaint data and add scam-specific friction: first-payee warnings and cooling-off periods."
 Do: end on the README / GitHub page.
 
+## Live wire scene (30 seconds, only if the backend has its variables set)
+Open the Live wire tab. Say: "This is a real Razorpay test-mode payment. The webhook is signed, I verify the signature, hash the phone number, and the engine decides in under a millisecond." Point at the Razorpay row (ON), then the latest decision with its `rz_` customer id. Then send Rs 25,00,000 from the form and show the Decline with `EXCEEDS_UPI_LIMIT`. Say: "My first version approved this. The model had never seen an amount like it, so it guessed safe. I found it by testing, and added guardrails that can only escalate." If Telegram is set, show the alert arriving on your phone.
+
 ## If asked
 | Question | Answer |
 |---|---|
@@ -47,6 +50,7 @@ Do: end on the README / GitHub page.
 | How would it scale? | State lives in memory, so run one instance, or partition by customer id, or move the store to Redis. See DEPLOY.md. |
 | Is the red team proof it is robust? | No. The attacker only has a fixed menu of twelve levers and attacks a simulator, with assumptions about how often a challenge lets fraud through (8%, or 50% when the customer is tricked). It finds holes and shows whether a patch closes those holes. The next search finds different ones, which the hardening table shows. |
 | Why not ship the hardened model? | Round 1 is the best trade in the recording, but every other number in the project was measured on the shipped model. Run it with `FH_ART=artifacts_hard`. |
+| Does it work on a real payment feed? | In Razorpay test mode, yes: signed webhook in, decision and reasons out, Telegram alert for step-ups and declines. Razorpay is merchant-side, so payee-graph signals are weak and the verdict is a hold/refund recommendation after authorisation. Not tried on live money. |
 | Is it safe for real money? | Not yet. It has an API key, an audit log and a review queue, but it is trained on synthetic data and has no rate limiting or role-based access. DEPLOY.md lists the gaps. |
 | Data protection? | The engine needs device ids, IPs and payee ids. On real data that is personal data and needs a lawful basis, retention limits and access control. |
 
