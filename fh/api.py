@@ -16,7 +16,8 @@ from pydantic import BaseModel
 from . import train, policy, whatif, feat
 from .engine import Engine
 from .geo import CITY
-from .gen import T0, DAY, TYPS, CATS
+from .gen import T0, DAY, TYPS, CATS, PERS_CATS
+from .geo import NIN
 from .model import GAM
 from .sim import Sim
 
@@ -94,10 +95,14 @@ async def stream(req: Request):
 # ---------------------------------------------------------------- scoring
 class Tx(BaseModel):
     uid: str
-    mid: str = "m_api"
+    mid: str = "shop@upi"
     cat: str = "digital"
     amt: float
-    chan: str = "ecom"
+    chan: str = "upi"      # upi | ecom | pos | atm | imps
+    pers: bool | None = None   # payee is a person/account (defaults from category)
+    coll: bool = False         # approving a collect request
+    rat: bool = False          # screen-sharing / remote-access app detected
+    sim: float | None = None   # hours since SIM change
     ts: float | None = None
     dev: str | None = None
     ip: str | None = None
@@ -114,8 +119,12 @@ async def score(t: Tx):
         raise HTTPException(422, "unknown cat; one of %s" % sorted(CATS))
     if t.amt <= 0:
         raise HTTPException(422, "amt must be > 0")
+    if t.chan not in ("upi", "ecom", "pos", "atm", "imps"):
+        raise HTTPException(422, "chan must be upi, ecom, pos, atm or imps")
     x = t.model_dump()
     commit = x.pop("commit")
+    x["pers"] = bool(x["pers"]) if x["pers"] is not None else t.cat in PERS_CATS
+    x["sim"] = x["sim"] if x["sim"] is not None else 1e4
     x["ts"] = x["ts"] or S["sim"].clk
     c = next((c for c in CITY if c[0] == x["city"]), None)
     if c:
@@ -167,6 +176,7 @@ class Ctl(BaseModel):
     spd: float | None = None
     run: bool | None = None
     boost: float | None = None
+    fest: float | None = None
     reset: bool = False
 
 
@@ -179,9 +189,11 @@ async def ctl(c: Ctl):
         s.run = c.run
     if c.boost is not None:
         s.boost = max(0.0, min(10.0, c.boost))
+    if c.fest is not None:
+        s.w.fest = max(1.0, min(4.0, c.fest))
     if c.reset:
         s.reset()
-    return s.snap()
+    return dict(s.snap(), fest=s.w.fest)
 
 
 class Atk(BaseModel):
@@ -214,16 +226,21 @@ async def policy_lab(d: dict):
 
 
 DESC = dict(
-    lamt="log transaction amount", zamt="amount vs this customer's own history (z-score of log amount)",
-    rmax="amount vs largest purchase on record", c1m="charges in the previous minute", c10m="charges in the previous 10 minutes",
-    c1h="charges in the previous hour", c24h="charges in the previous 24 hours", s1h="dollars spent in the previous hour",
+    lamt="log payment amount", zamt="amount vs this customer's own history (z-score of log amount)",
+    rmax="amount vs largest payment on record", c1m="payments in the previous minute", c10m="payments in the previous 10 minutes",
+    c1h="payments in the previous hour", c24h="payments in the previous 24 hours", s1h="rupees sent in the previous hour",
     ndev="device never seen on this account", nip="network (IP /24) never seen", ncty="country never seen",
-    nmer="merchant never used", ncat="category never used", hrar="rarity of this hour for this customer",
+    nmer="payee never paid before", ncat="category never used", hrar="rarity of this hour (IST) for this customer",
     dkm="km from last card-present location", sped="implied km/h from last card-present location", hkm="km from customer centroid",
     devu="other accounts on this device (7d)", ipu="other accounts on this network (7d)", dbad="fraud reports on this device (7d)",
-    ibad="fraud reports on this network (7d)", mbad="fraud reports at this merchant (7d)", ecom="online purchase",
-    atm="ATM withdrawal", crsk="category risk prior", cold="fewer than 4 prior transactions", tiny="micro-amount x recent velocity",
-    rnd="round amount >= $100", xdz="new device x unusual amount", xdc="new device x risky category", xhz="far from home x unusual amount",
+    ibad="fraud reports on this network (7d)", mbad="fraud complaints against this payee (7d)", ecom="online card payment",
+    atm="ATM withdrawal", upi="UPI payment", imps="IMPS / net-banking transfer", crsk="category risk prior",
+    cold="fewer than 4 prior transactions", tiny="online micro-amount x recent velocity", rnd="round amount >= Rs 1,000",
+    lim="amount just under a Rs 50k / 1L / 2L limit", pers="payee is a person or account", fanin="other customers who paid this payee (7d)",
+    pfirst="payee never seen on the platform", simc="SIM changed in the last 72 hours", rat="screen-share / remote-access app active",
+    coll="payment approves a collect request", xdz="new device x unusual amount", xdc="new device x risky category",
+    xhz="far from home x unusual amount", xrz="screen-share x unusual amount", xnz="first-time person payee x unusual amount",
+    xsd="new device x recent SIM change", xnf="first-time payee x other customers paying it",
 )
 
 
@@ -237,6 +254,24 @@ async def model_card():
     return dict(rep=rep, shapes=shapes, b0=g.b0, nfeat=len(g.names))
 
 
+@app.get("/api/drift")
+async def drift():
+    """Population stability index of recent traffic against the training distribution, per feature."""
+    eng, g, ref = S["eng"], S["g"], S["rep"]["ref"]
+    if len(eng.vecs) < 300:
+        return dict(n=len(eng.vecs), ready=False, feats=[])
+    X = np.array(eng.vecs)
+    out = []
+    for j, n in enumerate(g.names):
+        live = np.bincount(g.bins(X[:, j:j + 1].repeat(len(g.names), 1))[:, j], minlength=g.nb[j]) / len(X)
+        e, a = np.clip(np.array(ref[n]), 1e-4, None), np.clip(live, 1e-4, None)
+        out.append(dict(f=n, psi=float(np.sum((a - e) * np.log(a / e))), desc=DESC.get(n, "")))
+    out.sort(key=lambda r: -r["psi"])
+    worst = out[0]["psi"]
+    return dict(n=len(X), ready=True, feats=out, worst=worst, status="major" if worst > 0.25 else "moderate" if worst > 0.1 else "stable",
+                fest=S["w"].fest)
+
+
 @app.get("/api/users")
 async def users(n: int = 12):
     w = S["w"]
@@ -244,13 +279,15 @@ async def users(n: int = 12):
     for u in random.sample(w.users, min(n, 60)):
         P = S["eng"].st.u.get(u["uid"])
         out.append(dict(uid=u["uid"], city=CITY[u["hc"]][0], dev=u["devs"][0], ip=u["ips"][0] + ".10",
-                        txns=P.n if P else 0, typ=round(w.mean(u), 2)))
+                        txns=P.n if P else 0, typ=round(w.mean(u)), contact=u["ct"][0], merchant=w.mers[u["fp"][0]]["mid"] if u["fp"] else "shop@upi",
+                        ben=u["ben"][0], vpa=u["vpa"]))
     return out
 
 
 @app.get("/api/meta")
 async def meta():
-    return dict(cities=[c[0] for c in CITY], cats=sorted(CATS), kinds=TYPS, cfg=S["eng"].cfg.dict(), start=T0 + train.DAYS * DAY)
+    return dict(cities=[c[0] for c in CITY], nin=NIN, cats=sorted(CATS), kinds=TYPS, cfg=S["eng"].cfg.dict(), start=T0 + train.DAYS * DAY,
+                fest=S["w"].fest)
 
 
 @app.get("/api/health")

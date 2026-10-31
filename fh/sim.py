@@ -7,8 +7,9 @@ from collections import OrderedDict, deque
 
 from .gen import World
 
-# probability a fraudster passes a step-up challenge, by typology (bots never do; RATs relay the OTP)
-FPASS = {"card_test": 0.02, "mule": 0.05, "ato": 0.08, "ato_soft": 0.15, "hijack": 0.35, "travel": 0.03, "high_value": 0.05}
+# probability a fraudster passes a step-up challenge, by typology. Bots rarely do. A SIM-swapper receives the OTP
+# himself, a vished customer reads it out, and a scammed customer completes the challenge on their own phone.
+FPASS = {"card_test": 0.02, "mule": 0.05, "ato": 0.10, "sim_swap": 0.60, "vishing": 0.45, "upi_scam": 0.55, "travel": 0.03, "high_value": 0.05}
 
 
 class Sim:

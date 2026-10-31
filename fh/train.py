@@ -31,7 +31,7 @@ def stream(w, r, days=DAYS):
         v, raw = st.feats(x)
         X.append(v)
         Y.append(x["lab"])
-        M.append((x["ts"], x["amt"], x["typ"]))
+        M.append((x["ts"], x["amt"], x["typ"], x["chan"]))
         hh = rules.check(x, raw, st)
         F.append(rules.level(hh))
         H.append("+".join(h[1] for h in hh))
@@ -43,10 +43,10 @@ def stream(w, r, days=DAYS):
     return st, np.array(X), np.array(Y, float), M, np.array(F), np.array(H)
 
 
-def evaluate(y, p, amt, typ, frc, cfg):
+def evaluate(y, p, amt, typ, frc, cfg, k):
     fpr, tpr, prec, _ = model.curves(y, p)
     keep = np.unique(np.linspace(0, len(fpr) - 1, 220).astype(int))
-    app, stp, dec = policy.costs(p, amt, cfg)
+    app, stp, dec = policy.costs(p, amt, cfg, k)
     d = np.argmin(np.stack([app, stp, dec]), 0)
     d = np.maximum(d, frc)
     cal, ece = model.calib(y, p)
@@ -70,27 +70,30 @@ def main(seed=7):
     ts = np.array([m[0] for m in M])
     amt = np.array([m[1] for m in M])
     typ = np.array([m[2] for m in M])
+    chan = np.array([m[3] for m in M])
+    kk = policy.kvec(chan)
     print("  %d txns, %d fraud (%.2f%%)  [%.1fs]" % (len(Y), Y.sum(), 100 * Y.mean(), time.time() - t))
-    tr, va, te = ts < T0 + T_TRAIN * DAY, (ts >= T0 + T_TRAIN * DAY) & (ts < T0 + T_VAL * DAY), ts >= T0 + T_VAL * DAY
+    burn = ts >= T0 + 7 * DAY   # burn-in: the first week is cold start, every payee looks new
+    tr, va, te = burn & (ts < T0 + T_TRAIN * DAY), (ts >= T0 + T_TRAIN * DAY) & (ts < T0 + T_VAL * DAY), ts >= T0 + T_VAL * DAY
     print("fitting GAM  train=%d val=%d test=%d" % (tr.sum(), va.sum(), te.sum()))
     g = model.GAM(feat.NAMES).fit(X[tr], Y[tr], X[va], Y[va])
     lr = model.LR().fit(X[tr], Y[tr])
     cfg = policy.Cfg()
     pg, pl = g.predict(X[te]), lr.predict(X[te])
-    rep, dec = evaluate(Y[te], pg, amt[te], typ[te], F[te], cfg)
-    repl, _ = evaluate(Y[te], pl, amt[te], typ[te], F[te], cfg)
+    rep, dec = evaluate(Y[te], pg, amt[te], typ[te], F[te], cfg, kk[te])
+    repl, _ = evaluate(Y[te], pl, amt[te], typ[te], F[te], cfg, kk[te])
     rep["lr"] = {k: repl[k] for k in ("auc", "ap", "rec1", "rec01", "ll", "ece")}
     # rules-only baseline: how good are guardrails on their own?
     rep["rules_only"] = dict(recall=float(((F[te] > 0) & (Y[te] == 1)).sum() / max(Y[te].sum(), 1)),
                              fpr=float(((F[te] > 0) & (Y[te] == 0)).sum() / max((Y[te] == 0).sum(), 1)))
-    rep["importance"] = sorted(
-        [dict(f=n, v=float(np.abs(g.sh[j][g.bins(X[tr])[:, j]]).mean())) for j, n in enumerate(feat.NAMES)],
-        key=lambda a: -a["v"])
+    Btr = g.bins(X[tr])
+    rep["importance"] = sorted([dict(f=n, v=float(np.abs(g.sh[j][Btr[:, j]]).mean())) for j, n in enumerate(feat.NAMES)], key=lambda a: -a["v"])
+    rep["ref"] = {n: (np.bincount(Btr[:, j], minlength=g.nb[j]) / len(Btr)).tolist() for j, n in enumerate(feat.NAMES)}  # drift baseline
     rep["split"] = dict(train=int(tr.sum()), val=int(va.sum()), test=int(te.sum()), days=DAYS)
     os.makedirs(ART, exist_ok=True)
     json.dump(g.dump(), open(os.path.join(ART, "model.json"), "w"))
     json.dump(rep, open(os.path.join(ART, "report.json"), "w"))
-    np.savez_compressed(os.path.join(ART, "holdout.npz"), p=pg, amt=amt[te], y=Y[te], typ=typ[te], frc=F[te])
+    np.savez_compressed(os.path.join(ART, "holdout.npz"), p=pg, amt=amt[te], y=Y[te], typ=typ[te], frc=F[te], k=kk[te], chan=chan[te])
     pickle.dump((w, st), open(os.path.join(ART, "world.pkl"), "wb"))
     print("GAM  AUC %.4f  AP %.4f  recall@1%%FPR %.3f  recall@0.1%%FPR %.3f  ECE %.4f" % (rep["auc"], rep["ap"], rep["rec1"], rep["rec01"], rep["ece"]))
     print("LR   AUC %.4f  AP %.4f  recall@1%%FPR %.3f" % (repl["auc"], repl["ap"], repl["rec1"]))

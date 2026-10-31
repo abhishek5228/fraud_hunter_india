@@ -130,7 +130,7 @@ class World:
         s.adev = ["dx%02d" % i for i in range(14)]
         s.aip = [("%d.%d.%d" % (r.choice((45, 91, 103, 178, 194)), r.randrange(256), r.randrange(256)), r.randrange(len(CITY)))
                  for _ in range(24)]
-        s.mp = ["mu%02d@%s" % (i, r.choice(HANDLES)) for i in range(25)]   # rented mule accounts, reused across victims
+        s.mp = ["mu%03d@%s" % (i, r.choice(HANDLES)) for i in range(120)]  # rented mule accounts, reused across victims
         s.onls = [m for m in s.onl if s.mers[m]["cat"] in ("digital", "gift_cards", "gaming")] or s.onl
 
     def _add(s, r, cat, ci, pos=True):
@@ -144,11 +144,11 @@ class World:
         return k
 
     # ---- event construction -------------------------------------------------
-    def mk(s, r, ts, uid, m, amt, ch, dev, ip, ci, lab=0, typ="legit", jit=0.05, pers=False, coll=False, rat=False, sim=1e4):
+    def mk(s, r, ts, uid, m, amt, ch, dev, ip, ci, lab=0, typ="legit", jit=0.05, pers=False, coll=False, rat=False, sim=1e4, app=False):
         c = CITY[ci]
         return dict(ts=ts, uid=uid, mid=m["mid"], cat=m["cat"], amt=round(min(max(amt, 1.0), CAP.get(ch, 300000)), 2), chan=ch,
                     dev=dev, ip=ip, lat=round(c[1] + r.gauss(0, jit), 4), lon=round(c[2] + r.gauss(0, jit), 4),
-                    cty=c[3], city=c[0], pers=pers, coll=coll, rat=rat, sim=round(sim, 1), lab=lab, typ=typ)
+                    cty=c[3], city=c[0], pers=pers, coll=coll, rat=rat, sim=round(sim, 1), app=app, lab=lab, typ=typ)
 
     def person(s, r, uid):
         return dict(mid=uid, cat="p2p")
@@ -173,7 +173,7 @@ class World:
             amt = r.choice((500, 1000, 2000, 5000, 10000))
         elif p2p or ch == "imps":
             contacts = u["ct"] if p2p else u["ben"]
-            if r.random() < (0.9 if p2p else 0.88):
+            if r.random() < (0.78 if p2p else 0.85):
                 m = dict(mid=r.choice(contacts), cat="p2p" if p2p else "bank_transfer")
             else:  # a person they have never paid: plumber, new flatmate, a vendor
                 m = dict(mid=(r.choice(s.users)["vpa"] if p2p else "ac%s-%d" % (u["uid"], r.randrange(10, 99))),
@@ -290,7 +290,7 @@ class World:
 
     def mpay(s, r):
         """A mule payee: usually one of a small rented pool (so it accumulates victims), sometimes fresh."""
-        return r.choice(s.mp) if r.random() < 0.7 else "s%06d@%s" % (r.randrange(10 ** 6), r.choice(HANDLES))
+        return r.choice(s.mp) if r.random() < 0.55 else "s%06d@%s" % (r.randrange(10 ** 6), r.choice(HANDLES))
 
     def fraud(s, r, kind, ts, uid=None):
         ring = r.choice(s.ring) if kind == "mule" else None
@@ -312,8 +312,11 @@ class World:
         elif kind == "ato":  # phished net-banking credentials: new device, new beneficiary, IMPS out
             for _ in range(r.randint(1, 3)):
                 t += r.uniform(60, 500)
-                if r.random() < 0.35:   # structuring just under a limit
+                z = r.random()
+                if z < 0.30:     # structuring just under a limit
                     amt = r.choice(LIM) * r.uniform(0.95, 0.995)
+                elif z < 0.55:   # low and slow: looks like an ordinary transfer
+                    amt = mean * r.uniform(2, 8)
                 else:
                     amt = min(mean * r.uniform(12, 60), 300000)
                 ip, ci = ((("%d.%d.%d.%d" % (210 + u["hc"], r.randrange(256), r.randrange(256), r.randrange(1, 255))), u["hc"])
@@ -321,27 +324,30 @@ class World:
                 out.append(s.mk(r, t, u["uid"], dict(mid=s.mpay(r), cat="bank_transfer"), amt, "imps", ad if r.random() < 0.15 else "dn%06d" % r.randrange(10 ** 6),
                                 ip, ci, 1, kind, pers=True))
         elif kind == "sim_swap":  # attacker ports the number, binds UPI on a new phone, drains in a burst
-            hrs = r.uniform(0.5, 48)
+            hrs, seen = r.uniform(0.5, 48), r.random() < 0.6   # telco SIM-change data only covers some cases
             dev = "dn%06d" % r.randrange(10 ** 6)
             for _ in range(r.randint(2, 5)):
                 t += r.uniform(60, 300)
-                amt = r.choice((49999, 99999, 95000, 90000, 24999)) * r.uniform(0.97, 1.0) if r.random() < 0.6 else min(mean * r.uniform(10, 40), 100000)
-                out.append(s.mk(r, t, u["uid"], dict(mid=s.mpay(r), cat="p2p"), amt, "upi", dev, aip, aci, 1, kind, pers=True, sim=hrs + (t - ts) / 3600))
+                z = r.random()
+                amt = (r.choice((49999, 99999, 95000, 90000, 24999)) * r.uniform(0.97, 1.0) if z < 0.45
+                       else mean * r.uniform(3, 12) if z < 0.7 else min(mean * r.uniform(10, 40), 100000))
+                out.append(s.mk(r, t, u["uid"], dict(mid=s.mpay(r), cat="p2p"), amt, "upi", dev, aip, aci, 1, kind, pers=True,
+                                sim=(hrs + (t - ts) / 3600) if seen else 1e4))
         elif kind == "vishing":  # caller convinces the customer to pay; often with a screen-share app running
             ch = "upi" if r.random() < 0.7 else "imps"
-            rat = r.random() < 0.6
+            rat = r.random() < 0.35
             for _ in range(r.randint(1, 4)):
                 t += r.uniform(60, 600)
-                amt = min(mean * r.uniform(6, 30), CAP[ch])
+                amt = min(mean * (r.uniform(1.5, 5) if r.random() < 0.4 else r.uniform(6, 30)), CAP[ch])
                 out.append(s.mk(r, t, u["uid"], dict(mid=s.mpay(r), cat="p2p" if ch == "upi" else "bank_transfer"), amt, ch,
-                                r.choice(u["devs"]), vip(), u["hc"], 1, kind, pers=True, rat=rat))
+                                r.choice(u["devs"]), vip(), u["hc"], 1, kind, pers=True, rat=rat, app=True))
         elif kind == "upi_scam":  # QR / refund / fake-buyer scams and unverified-merchant collect requests
             coll = r.random() < 0.35
             for _ in range(r.randint(1, 3)):
                 t += r.uniform(60, 400)
-                amt = r.uniform(200, 2000) if coll else min(mean * r.uniform(2, 25), 50000)
+                amt = r.uniform(200, 2000) if coll else min(mean * (r.uniform(0.8, 3) if r.random() < 0.45 else r.uniform(3, 25)), 50000)
                 out.append(s.mk(r, t, u["uid"], dict(mid=s.mpay(r), cat="p2p"), amt, "upi", r.choice(u["devs"]), vip(), u["hc"], 1, kind,
-                                pers=True, coll=coll))
+                                pers=True, coll=coll, app=True))
         elif kind == "travel":  # cloned card used far away
             m0 = s.mers[r.choice(s.byc[u["hc"]])]
             out.append(s.mk(r, ts, u["uid"], m0, math.exp(r.gauss(u["mu"], u["sg"])), "pos", None, None, u["hc"], 0, "legit"))
