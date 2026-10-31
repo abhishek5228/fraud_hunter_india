@@ -540,6 +540,33 @@
    }
   },
   {
+   "name": "POST /api/llm/check",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/llm/check",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "llm",
+      "check"
+     ]
+    }
+   }
+  },
+  {
    "name": "POST /api/loadtest",
    "request": {
     "method": "POST",

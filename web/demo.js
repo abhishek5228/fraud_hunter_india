@@ -143,9 +143,9 @@
     if (path === "/api/fairness") return D.fairness;
     if (path === "/api/consortium") return { on: false, imported: 0, banks: [], psi: { matched: 0, peers: [] } };
     if (/^\/api\/case\/[^/]+\/brief/.test(path)) { const b = D.briefs[path.split("/")[3]]; return b || { __err: 404, detail: "No brief was recorded for this case in the demo" }; }
-    if (path === "/api/integrations") return { razorpay: { on: false, ok: 0, bad_sig: 0, ignored: 0 }, ipinfo: { on: false, cached: 0, errors: 0 }, alerts: { channels: [], sent: 0, dropped: 0, failed: 0 }, auth: false };
+    if (path === "/api/integrations") return { razorpay: { on: false, ok: 0, bad_sig: 0, ignored: 0 }, ipinfo: { on: false, cached: 0, errors: 0 }, alerts: { channels: [], sent: 0, dropped: 0, failed: 0 }, auth: false, llm: { on: false, model: "" } };
     if (path === "/api/wire") return { events: [] };
-    if (path === "/api/graph/verdict" || path.startsWith("/api/psi") || path === "/api/shield/report" || path.startsWith("/api/webhook") || path === "/api/alerts/test" || path.startsWith("/api/loadtest")) return { __err: 422, detail: "Demo mode: this needs the live backend. Nothing here is simulated." };
+    if (path === "/api/llm/check" || path === "/api/graph/verdict" || path.startsWith("/api/psi") || path === "/api/shield/report" || path.startsWith("/api/webhook") || path === "/api/alerts/test" || path.startsWith("/api/loadtest")) return { __err: 422, detail: "Demo mode: this needs the live backend. Nothing here is simulated." };
     if (path === "/api/redteam/run") return D.redteam.run;
     if (path === "/api/redteam/rounds") return D.redteam.rounds;
     if (path === "/api/confirm") return { ok: true };

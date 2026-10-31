@@ -523,7 +523,16 @@ async def integrations():
     return dict(
         razorpay=dict(on=bool(os.environ.get("RAZORPAY_WEBHOOK_SECRET")), url="/api/webhook/razorpay", **S["hook"]),
         ipinfo=dict(on=ip.on, cached=len(ip.cache), cache_hits=ip.hits, errors=ip.errs),
-        alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")))
+        alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")),
+        llm=dict(on=bool(os.environ.get("ANTHROPIC_API_KEY")), model=os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5")))
+
+
+@app.post("/api/llm/check", dependencies=[Depends(guard)])
+async def llm_check():
+    """One real call to the LLM on a fixture (no customer data), so the key and model name can be tested from the UI."""
+    r = await run_in_threadpool(copilot.check)
+    S["aud"].log("llm_check", detail=dict(ok=r["ok"]), model=S["ver"])
+    return r
 
 
 @app.post("/api/alerts/test", dependencies=[Depends(guard)])

@@ -235,3 +235,31 @@ def test_copilot_hindi_is_hindi_and_structured_report_exists():
     assert "Payee linked" not in b["hi"] and "शिकायतों" in b["hi"]
     j = b["str_json"]
     assert j["draft"] and j["transaction"]["amount_inr"] == 45000 and j["grounds_of_suspicion"] and "FINnet" in j["format"]
+
+
+# ---- the in-app LLM check
+def test_llm_check_reports_each_failure_plainly_and_never_leaks_the_key(monkeypatch):
+    import urllib.error
+    assert "not set" in copilot.check()["error"]
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret-123")
+    ok = copilot.check(call=lambda k, p: "Declined a ₹45,000 UPI payment at 93% risk; the payee is linked to 3 recent fraud complaints.")
+    assert ok["ok"] and "₹45,000" in ok["text"]
+    def http(code):
+        def f(k, p): raise urllib.error.HTTPError("https://api.anthropic.com", code, "x", {}, None)
+        return f
+    assert "rejected" in copilot.check(call=http(401))["error"] and "FH_LLM_MODEL" in copilot.check(call=http(404))["error"] and "credit" in copilot.check(call=http(429))["error"]
+    assert "reach" in copilot.check(call=lambda k, p: (_ for _ in ()).throw(OSError("down")))["error"]
+    assert "unexpected format" in copilot.check(call=lambda k, p: (_ for _ in ()).throw(KeyError("content")))["error"]
+    bad = copilot.check(call=lambda k, p: "Declined ₹45,000 and 777 more")
+    assert not bad["ok"] and "added numbers" in bad["error"]
+    import json
+    for r in (ok, bad, copilot.check(call=http(401))):
+        assert "sk-secret" not in json.dumps(r)
+
+
+def test_llm_check_endpoint_is_guarded_and_listed(client, monkeypatch):
+    monkeypatch.setenv("FH_API_KEY", "k")
+    assert client.post("/api/llm/check").status_code == 401
+    monkeypatch.delenv("FH_API_KEY")
+    assert client.post("/api/llm/check").json()["ok"] is False
+    assert client.get("/api/integrations").json()["llm"]["on"] is False

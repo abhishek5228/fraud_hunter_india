@@ -732,6 +732,23 @@
     }
    }
   },
+  "/api/llm/check": {
+   "post": {
+    "summary": "Llm Check",
+    "description": "One real call to the LLM on a fixture (no customer data), so the key and model name can be tested from the UI.",
+    "operationId": "llm_check_api_llm_check_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/alerts/test": {
    "post": {
     "summary": "Alert Test",

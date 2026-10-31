@@ -123,3 +123,32 @@ def brief(c, llm=False, call=None):
         b["en"], b["source"] = polish(f, b["en"], call)
     b["facts"] = f
     return b
+
+
+FIXTURE = dict(id="fixture", ts=1793433679, uid="rz_fixture", mid="mu***@paytm", cat="p2p", amt=45000, chan="upi", city="Patna", score=93, dec=2, dname="DECLINE",
+               hits=[dict(code="MULE_PAYEE", msg="Payee linked to 3 recent fraud complaints", lvl=2)], top=[dict(txt="First payment to this payee", c=1.2)])
+
+
+def check(call=None):
+    """Try the real LLM once on a fixture case (no customer data) and say plainly what happened. Never raises, never returns the key."""
+    model = os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5")
+    k = os.environ.get("ANTHROPIC_API_KEY")
+    if not k:
+        return dict(ok=False, model=model, error="ANTHROPIC_API_KEY is not set on the server")
+    f = facts(FIXTURE)
+    base = template(f)["en"]
+    prompt = ("Rewrite these facts as a concise 3-4 sentence note for a bank fraud analyst. Use ONLY the facts below, add nothing, "
+              "keep every number exactly as given.\n\n" + json.dumps({x: f[x] for x in f if x != "follow"}, ensure_ascii=False))
+    try:
+        out = (call or _call)(k, prompt).strip()
+    except urllib.error.HTTPError as e:
+        why = {401: "the key was rejected (wrong or revoked)", 403: "the key is not allowed to use this model", 404: "the model name was not found: set FH_LLM_MODEL",
+               429: "rate limited or out of credit", 400: "the request was rejected (check FH_LLM_MODEL)"}.get(e.code, "HTTP %d from the API" % e.code)
+        return dict(ok=False, model=model, error=why)
+    except (urllib.error.URLError, OSError, TimeoutError):
+        return dict(ok=False, model=model, error="could not reach api.anthropic.com from the server")
+    except (ValueError, KeyError, IndexError):
+        return dict(ok=False, model=model, error="the API answered in an unexpected format")
+    if not out or not _nums(out) <= (_nums(json.dumps(f)) | _nums(base)):
+        return dict(ok=False, model=model, error="the model's answer added numbers that were not in the facts, so it was rejected", text=out[:400])
+    return dict(ok=True, model=model, text=out)

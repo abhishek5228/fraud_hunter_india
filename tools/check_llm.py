@@ -11,10 +11,8 @@ from fh import copilot
 
 if not os.environ.get("ANTHROPIC_API_KEY"):
     sys.exit("set ANTHROPIC_API_KEY first")
-case = dict(id="fixture", ts=1793433679, uid="rz_fixture", mid="mu***@paytm", cat="p2p", amt=45000, chan="upi", city="Patna", score=93, dec=2, dname="DECLINE",
-            hits=[dict(code="MULE_PAYEE", msg="Payee linked to 3 recent fraud complaints", lvl=2)], top=[dict(txt="First payment to this payee", c=1.2)])
-b = copilot.brief(case, llm=True)
-print("model:", os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5"))
-print("source:", b["source"])
-print(b["en"])
-sys.exit(0 if b["source"] == "llm" else 1)
+r = copilot.check()
+print("model:", r["model"])
+print("ok:", r["ok"])
+print(r.get("text") or r.get("error"))
+sys.exit(0 if r["ok"] else 1)
