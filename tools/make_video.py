@@ -48,6 +48,8 @@ async def main():
             await pg.mouse.move(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2, steps=12)
 
         async def click(sel):
+            if sel.startswith(".tabs"):                  # never leave a caption about one screen over another
+                await pg.evaluate("window.cap('')")
             await move(sel)
             await pg.wait_for_timeout(150 if PREVIEW else 400)
             await pg.click(sel)
@@ -109,6 +111,18 @@ async def main():
         await say("It shows its weak spots too", "Payee fan-in flagged 377 payments that were all good. IMPS touched 20% of good customers.", 6.0)
         await pg.evaluate("window.scrollTo(0,0)")
 
+        # --- red team
+        await click('.tabs button[data-tab="redteam"]')
+        await pg.wait_for_selector("#rt-out .kpi", timeout=20000)
+        await say("Now the engine attacks itself", "An automated fraudster tries 360 strategies against real customer histories. The production engine decides every payment.", 7.0, "r1_intro")
+        await pg.evaluate("document.querySelector('#rt-out').children[2].scrollIntoView({block:'start'}); window.scrollBy(0,-95)")
+        await say("It found a blind spot", "Eight payments just under the 50,000 rupee limit, to a gift-card shop, from the victim's own phone: about 2.6 lakh rupees per customer.", 9.0, "r2_found")
+        await pg.evaluate("document.querySelector('#rt-out').children[3].scrollIntoView({block:'start'}); window.scrollBy(0,-95)")
+        await say("Splitting under the limit is the lever that matters", "Equal parts earn the attacker about 6 thousand. Just-under-limit parts earn about 1.6 lakh.", 7.0, "r3_levers")
+        await pg.evaluate("document.querySelector('#rt-out').children[4].scrollIntoView({block:'start'}); window.scrollBy(0,-95)")
+        await say("Patch it, then attack again", "Training on what it found cut the attacker's median haul by 86% for 0.4 points more friction. It narrows the hole, it does not close it.", 10.0, "r4_harden")
+        await pg.evaluate("window.scrollTo(0,0)")
+
         # --- policy lab
         await click('.tabs button[data-tab="lab"]')
         await pg.wait_for_timeout(1500)
@@ -139,7 +153,7 @@ async def main():
         await pg.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior:'instant'})")
         await say("Honest about its limits", "Trained on synthetic data. A plain logistic model scores as well. Scams without a screen-share are the hardest case.", 7.5, "12_limits")
         await pg.evaluate("window.scrollTo(0,0)")
-        await say("Fraud Hunter India", "30 tests, one-file demo, Docker and Render ready. github.com/abhishekisagemai-bot/fraud_hunter", 6.0, "13_end")
+        await say("Fraud Hunter India", "36 tests, one-file demo, Docker and Render ready. github.com/abhishekisagemai-bot/fraud_hunter", 6.0, "13_end")
 
         if not PREVIEW:
             path = await pg.video.path()

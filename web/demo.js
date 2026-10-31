@@ -138,6 +138,8 @@
     if (path === "/api/backtest/sample") return D.backtest;
     if (path === "/api/backtest") return { __err: 422, detail: "Uploading your own file needs the live backend. The sample report was recorded from the real engine." };
     if (path === "/api/audit") return { total: 0, rows: [] };
+    if (path === "/api/redteam/run") return D.redteam.run;
+    if (path === "/api/redteam/rounds") return D.redteam.rounds;
     if (path === "/api/confirm") return { ok: true };
     if (path.startsWith("/api/case/")) {
       const id = path.slice(10), c = D.cases[id];

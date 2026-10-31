@@ -95,9 +95,12 @@ print("running the sample backtest ...")
 bt, _ = backtest.run(backtest.parse(sample.sample_csv())[0], g, policy.Cfg())
 bt.update(problems=[], model=api.model_version(), id="sample", sample=True)
 
+rt = json.load(open(os.path.join(ROOT, "docs", "redteam.json")))
+redteam_data = dict(rounds=rt, run=dict(rt["rounds"][0], model=api.model_version()))
+
 shapes = [dict(f=n, desc=api.DESC.get(n, ""), edges=g.el[j], v=g.sl[j]) for j, n in enumerate(g.names)]
 data = dict(
-    backtest=bt, base=base, lib=lib, fest=fest, cases=cases, labs=labs, drift=dict(normal=drift_normal, fest=drift_fest),
+    redteam=redteam_data, backtest=bt, base=base, lib=lib, fest=fest, cases=cases, labs=labs, drift=dict(normal=drift_normal, fest=drift_fest),
     model=dict(rep={k: v for k, v in rep.items() if k != "ref"}, shapes=shapes, b0=g.b0, nfeat=len(g.names)),
     meta=dict(cities=[c[0] for c in api.CITY], nin=api.NIN, cats=sorted(api.CATS), kinds=TYPS, cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY, fest=1.0),
     cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY,

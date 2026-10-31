@@ -34,7 +34,7 @@ function tabbing() {
     $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $$(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
     if (b.dataset.tab === "lab") lab(); if (b.dataset.tab === "model") model(); if (b.dataset.tab === "play") play();
-    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab();
+    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab();
   }));
 }
 
@@ -129,6 +129,67 @@ async function downloadBt() {
   const resp = await fetch((window.FH_API || "") + "/api/backtest/" + btId + "/csv", { headers: hdr() });
   if (!resp.ok) { $("#bt-status").textContent = "That result has expired; run the backtest again."; return; }
   const a = el("a", { href: URL.createObjectURL(await resp.blob()), download: "decisions-" + btId + ".csv" }); document.body.append(a); a.click(); a.remove();
+}
+
+/* ------------------------------------------------------------ red team */
+let rtBound = false, rtRounds = null;
+async function redTab() {
+  if (rtBound) return; rtBound = true;
+  $("#rt-run").onclick = runRt;
+  try { rtRounds = await api("/api/redteam/rounds"); } catch (e) { rtRounds = null; }
+  if (window.FH_DEMO) { $("#rt-status").textContent = "Demo mode: showing the run recorded from the real engine."; }
+  runRt();
+}
+async function runRt() {
+  const st = $("#rt-status"); if (!window.FH_DEMO) st.textContent = "Attacking (about 10 seconds)…"; $("#rt-out").style.opacity = 0.5;
+  try { const r = await api("/api/redteam/run", { seed: 1 + Math.floor(Math.random() * 1000) }); if (!window.FH_DEMO) st.textContent = `Tried ${r.evaluated.toLocaleString("en-IN")} attacks on ${r.victims} customers in ${r.seconds} s.`; renderRt(r); }
+  catch (e) { st.textContent = e.message; }
+  $("#rt-out").style.opacity = 1;
+}
+function lvLabel(lv, v) {
+  if (lv === "gap") { const n = +v; return n < 60 ? n + " s" : n < 3600 ? n / 60 + " min" : n / 3600 + " h"; }
+  if (lv === "mult") return +v === 0 ? "just under the limit" : "total x" + v;
+  if (lv === "n") return v + (+v === 1 ? " payment" : " payments");
+  if (lv === "rat" || lv === "sim" || lv === "social") return +v ? "yes" : "no";
+  return ({ pool: "mule account", fresh: "brand-new account", merchant: "gift-card shop", contact: "saved contact", own: "victim's phone", new: "new phone", equal: "equal parts", random: "uneven parts", limit: "just under limit" }[v]) || v;
+}
+function renderRt(r) {
+  const tile = (l, v, s, k) => el("div", { class: "kpi " + (k || "") }, el("div", { class: "l" }, l), el("div", { class: "v" }, v), el("div", { class: "s" }, s));
+  const t0 = r.top[0], kids = [];
+  kids.push(el("div", { class: "big" },
+    tile("Best attack: expected haul", mk(r.best), `per customer, whose usual ticket is about ${money(r.mean_ticket)}`, "bad"),
+    tile("Share of the attempt that lands", pct(t0.share, 0), t0.share >= 0.75 ? "nearly all of it gets through" : t0.share >= 0.4 ? "a large share gets through" : "a minority gets through", t0.share >= 0.4 ? "bad" : "warn"),
+    tile("Customers where it is caught", pct(r.best_caught, 0), "attack stopped before most of the money moved", r.best_caught > 0.5 ? "good" : "bad"),
+    tile("Strategies tried", r.evaluated.toLocaleString("en-IN"), `${r.curve.length} generations of evolution; each strategy tried on several customers`, "")));
+  const cv = el("div", { class: "chart" });
+  kids.push(el("div", { class: "card" }, el("h3", null, "How fast the attacker learns", el("span", { class: "note sp" }, "random guesses start near zero")), el("div", { class: "body" }, cv)));
+  const tb = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Strategy"), el("th", { class: "r" }, "Haul"), el("th", { class: "r" }, "Lands"), el("th", { class: "r" }, "Caught"))),
+    el("tbody", null, r.top.slice(0, 6).map(t => el("tr", null, el("td", { style: "max-width:520px;line-height:1.45" }, t.text), el("td", { class: "r" }, mk(t.extracted)), el("td", { class: "r" }, pct(t.share, 0)), el("td", { class: "r" }, pct(t.caught, 0))))));
+  kids.push(el("div", { class: "card" }, el("h3", null, "The best strategies it found", el("span", { class: "note sp" }, "checked on 40 customers the search never saw")), el("div", { class: "body" }, tb)));
+  const mx = Math.max(...r.levers.slice(0, 6).flatMap(l => l.rows.map(x => x.mean)), 1);
+  const lv = el("div", { class: "grid2" }, r.levers.slice(0, 6).map(l => el("div", null, el("div", { style: "font-weight:600;margin-bottom:4px" }, ({ split: "How the money is split", gap: "Time between payments", mult: "Total vs. usual ticket", n: "Number of payments", ip: "Network", payee: "Who is paid", rail: "Rail", dev: "Device", hour: "Hour of day", rat: "Screen-share visible", sim: "Just swapped SIM", social: "Customer approves the challenge" }[l.lever] || l.lever)),
+    el("div", { class: "econ", style: "grid-template-columns:120px 1fr 62px" }, l.rows.flatMap(x => [el("div", { class: "mono", style: "font-size:11.5px" }, lvLabel(l.lever, x.v)), el("div", { class: "bar" }, el("i", { style: `width:${Math.max(1, 100 * x.mean / mx)}%;background:#7c8dff` })), el("div", { class: "v" }, mk(x.mean))])))));
+  kids.push(el("div", { class: "card" }, el("h3", null, "What helps an attacker most", el("span", { class: "note sp" }, "average haul of every attack that used each setting")), el("div", { class: "body" }, lv)));
+  const hd = el("div", { id: "rt-harden" });
+  kids.push(el("div", { class: "card" }, el("h3", null, "Closing the holes, and what it costs", el("span", { class: "note sp" }, "recorded: attack, train on what worked, attack again; median of 3 searches")), el("div", { class: "body" }, hd)));
+  $("#rt-out").replaceChildren(...kids);
+  lineChart(cv, { title: "attacker learning curve", x: r.curve.map(c => c.gen + 1), xfmt: v => "gen " + v, yfmt: v => mk(v), w: 640, h: 200, endLabels: true,
+    series: [{ name: "Best attack in the generation", short: "best", color: "#cc2f46", y: r.curve.map(c => c.best) }, { name: "Average attack", short: "average", color: "#9aa8bd", y: r.curve.map(c => c.mean) }] });
+  renderHarden(hd);
+}
+function renderHarden(h) {
+  if (!rtRounds) { h.append(el("div", { class: "empty" }, "No recorded hardening run in this deployment. Run `python -m fh.redteam --harden 3`.")); return; }
+  const R = rtRounds.rounds, g = x => x.regular || {}, mx = Math.max(...R.map(r => r.best));
+  const tb = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Round"), el("th", null, "Attacker's best haul per customer"), el("th", { class: "r" }, "Accuracy (AP)"), el("th", { class: "r" }, "Fraud caught"), el("th", { class: "r" }, "Good customers touched"))),
+    el("tbody", null, R.map((r, i) => el("tr", null, el("td", null, i === 0 ? "0  (shipped)" : String(i)), el("td", null, el("div", { style: "display:flex;gap:8px;align-items:center" }, el("div", { class: "hb", style: "flex:1" }, el("i", { style: `width:${100 * r.best / mx}%;background:${i === 0 ? "#cc2f46" : "#2b47ff"}` })), el("b", { class: "mono", style: "min-width:64px;text-align:right" }, mk(r.best)), el("span", { class: "note", style: "min-width:120px" }, r.best_min != null ? `(${mk(r.best_min)} to ${mk(r.best_max)})` : ""))),
+      el("td", { class: "r" }, g(r).ap ? g(r).ap.toFixed(3) : "–"), el("td", { class: "r" }, g(r).caught ? pct(g(r).caught, 1) : "–"), el("td", { class: "r" }, g(r).touched ? pct(g(r).touched, 1) : "–")))));
+  const a = R[0], b = R[1], later = R.slice(2), z = R[R.length - 1], dT = (g(b).touched - g(a).touched) * 100, dA = g(b).ap - g(a).ap;
+  const acc = Math.abs(dA) < 0.005 ? "no real change in accuracy" : `accuracy ${dA < 0 ? "down" : "up"} ${Math.abs(dA).toFixed(3)}`;
+  const improving = later.every((r, i) => r.best <= (i ? later[i - 1].best : b.best) * 0.8);
+  h.append(tb, el("div", { class: "note", style: "margin-top:10px;line-height:1.65" },
+    el("div", null, `Training on what round 0 found cut the attacker's median haul from ${mk(a.best)} to ${mk(b.best)} (${pct(1 - b.best / a.best, 0)} less), with ${acc} and ${Math.abs(dT).toFixed(1)} points ${dT >= 0 ? "more" : "less"} friction on good customers.`),
+    el("div", { style: "margin-top:6px" }, `It is narrowed, not closed: the best of three searches still found ${mk(b.best_max)} against round 1. A single run would have understated that.`),
+    later.length ? el("div", { style: "margin-top:6px" }, `Later rounds end at ${later.map(r => mk(r.best)).join(" and ")} (worst searches ${later.map(r => mk(r.best_max)).join(" and ")}). ${improving ? "They keep improving" : "They do not improve reliably"}, while friction reaches ${pct(g(z).touched, 1)} and accuracy ${g(z).ap.toFixed(3)}. Each patch closes the holes it was shown and the next search finds different ones.`) : null));
 }
 
 /* ------------------------------------------------------------ policy lab */
