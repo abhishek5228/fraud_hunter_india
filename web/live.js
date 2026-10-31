@@ -149,7 +149,7 @@ function connect() {
     if (m.t === "tx") { if (!S.paused) addTx(m.d); }
     else {
       const s = m.d; S.snap = s;
-      $("#clk").textContent = stime(s.ts, true).replace(" UTC", "") + " · " + s.tps.toFixed(0) + "/s";
+      $("#clk").textContent = stime(s.ts, true).replace(/\d{4}-\d{2}-\d{2} /, "") + " · " + s.tps.toFixed(0) + "/s";
       kpis(s); typTable(s);
       S.hist.push({ ts: s.ts, stop: s.fr_stop, leak: s.fr_leak, lost: s.lg_lost + s.so.lfa });
       if (S.hist.length > 240) S.hist.shift();

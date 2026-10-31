@@ -14,6 +14,8 @@
   </div>
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="live" aria-selected="true">Live ops</button>
+    <button role="tab" data-tab="review" aria-selected="false">Review</button>
+    <button role="tab" data-tab="backtest" aria-selected="false">Backtest</button>
     <button role="tab" data-tab="lab" aria-selected="false">Policy lab</button>
     <button role="tab" data-tab="play" aria-selected="false">Playground</button>
     <button role="tab" data-tab="model" aria-selected="false">Model card</button>
@@ -63,6 +65,35 @@
       <div class="card"><h3>Detection by attack type <span class="note sp">simulation truth</span></h3><div class="body" id="typ"></div></div>
       <div class="card"><h3>Is traffic still what the model was trained on? <span class="status stable sp" id="dstat">checking</span></h3><div class="body" id="drift"><div class="empty">Collecting traffic…</div></div></div>
     </div>
+  </div>
+</section>
+
+<section class="tab" id="tab-review">
+  <div class="live" style="grid-template-columns:420px minmax(460px,1fr)">
+    <div class="col"><div class="card feedc"><h3>Needs a decision <span class="note" id="rcount"></span></h3>
+      <div class="note" style="padding:2px 14px 0">Payments the engine challenged or declined that nobody has confirmed yet. Your answer feeds the engine and the audit log.</div>
+      <div class="feed" id="rlist"><div class="empty">Loading…</div></div></div></div>
+    <div class="col"><div class="card insp" id="rinsp"><div class="empty">Pick a payment to review it.</div></div></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-backtest">
+  <div class="lab" style="grid-template-columns:380px 1fr">
+    <div class="col">
+      <div class="card"><h3>Try it on your own data</h3><div class="body">
+        <p class="note" style="margin-top:0">Replay a CSV of past payments through the engine and see what it would have caught, what it would have cost good customers, and why. Nothing live is touched.</p>
+        <input type="file" id="bt-file" accept=".csv,text/csv" aria-label="Transactions CSV">
+        <div class="act" style="padding:10px 0 0"><button class="btn pri" id="bt-run">Run on my file</button><button class="btn" id="bt-sample">Try the 45-day sample</button></div>
+        <div class="note" id="bt-status" style="margin-top:8px" role="status"></div>
+      </div></div>
+      <div class="card"><h3>File format</h3><div class="body note" style="line-height:1.6">
+        <b style="color:var(--ink)">Required:</b> <span class="mono">ts, uid, amt, chan, mid</span> and a location: <span class="mono">city</span> or <span class="mono">lat, lon</span>.<br>
+        <span class="mono">ts</span> is epoch seconds or ISO-8601 (no zone means IST). <span class="mono">chan</span> is upi, ecom, pos, atm or imps. <span class="mono">mid</span> is the payee or merchant.<br>
+        <b style="color:var(--ink)">Optional:</b> <span class="mono">cat, dev, ip, pers, coll, rat, sim</span>, and <span class="mono">label</span>: 0 good, 1 fraud the customer did not make, 2 fraud the customer was tricked into. With labels you get catch rates and money saved.<br>
+        <b style="color:var(--ink)">History matters.</b> Give at least a month: the engine judges each payment against that customer's past, so a short file overstates friction.
+      </div></div>
+    </div>
+    <div class="col" id="bt-out"><div class="card"><div class="empty">Run the sample to see the report.</div></div></div>
   </div>
 </section>
 

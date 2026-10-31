@@ -32,9 +32,10 @@ const RAILN = { upi: "UPI", imps: "IMPS / net banking", ecom: "Card online", pos
 const railK = (chan, a, pers) => (chan === "pos" || chan === "ecom") ? 1 : (chan === "upi" && !pers && a > 2000 ? 0.4 / 1.8 : 0);   // share of card margin earned: UPI to merchants above Rs 2,000 carries 0.4% MDR from 15 Oct 2026
 const TYPN = { card_test: "Card testing", travel: "Cloned card", high_value: "Stolen-card splurge", ato: "Net-banking takeover", sim_swap: "SIM-swap drain", vishing: "Vishing and screen-share", upi_scam: "UPI payee scam", mule: "Mule cash-out" };
 const DN = ["Approve", "Step-up", "Decline"];
+const hdr = extra => Object.assign({}, window.FH_KEY ? { "x-api-key": window.FH_KEY } : {}, extra);
 const api = async (u, body) => {
-  const r = await fetch((window.FH_API || "") + u, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(u + " " + r.status);
+  const r = await fetch((window.FH_API || "") + u, body === undefined ? { headers: hdr() } : { method: "POST", headers: hdr({ "content-type": "application/json" }), body: JSON.stringify(body) });
+  if (!r.ok) { let m = u + " " + r.status; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
   return r.json();
 };
 
@@ -184,7 +185,7 @@ function renderCase(host, c, cfg, o = {}) {
   if (o.actions) {
     const fb = (verdict, block) => async ev => {
       ev.target.disabled = true;
-      try { await api("/api/feedback", { id: c.id, verdict, block }); ev.target.textContent = "Recorded"; } catch (e) { ev.target.textContent = "Case expired"; }
+      try { await api("/api/feedback", { id: c.id, verdict, block }); ev.target.textContent = "Recorded"; o.onDone && o.onDone(); } catch (e) { ev.target.textContent = "Case expired"; }
     };
     host.append(el("div", { class: "act" }, el("button", { class: "btn bad", onclick: fb("fraud", false) }, "Confirm fraud"),
       el("button", { class: "btn bad", onclick: fb("fraud", true) }, "Confirm fraud and block device, network and payee"), el("button", { class: "btn", onclick: fb("legit", false) }, "Mark legitimate")));

@@ -5,7 +5,7 @@
 (function () {
   const realFetch = window.fetch.bind(window), RealES = window.EventSource;
   let D = null, snapT = 0;
-  const S = { run: true, spd: 150, boost: 1, fest: 1, q: [], bi: 0, fi: 0, off: 0, last: 0, acc: 0, shift: {}, feStart: 0, wall: [], lat: [] };
+  const S = { rev: new Set(), flag: [], run: true, spd: 150, boost: 1, fest: 1, q: [], bi: 0, fi: 0, off: 0, last: 0, acc: 0, shift: {}, feStart: 0, wall: [], lat: [] };
   let st = null;
   const subs = new Set();
   const resetStats = () => { st = { n: 0, vol: 0, cm: [[0, 0], [0, 0], [0, 0]], am: [[0, 0], [0, 0], [0, 0]], so: { lp: 0, lf: 0, fp: 0, ff: 0, lfa: 0, ffa: 0, fpa: 0, lpa: 0 }, typ: {} }; };
@@ -60,6 +60,7 @@
     if (m.dec === 1) { const k = (m.lab ? "f" : "l") + (m.out === "pass" ? "p" : "f"); s[k]++; s[k + "a"] = (s[k + "a"] || 0) + a; }
     const t = st.typ[m.typ] || (st.typ[m.typ] = [0, 0, 0, 0]);
     t[m.out === "approved" || m.out === "pass" ? 0 : 1]++; t[2]++; t[3] += a;
+    if (m.dec > 0) { S.flag.push(m); if (S.flag.length > 120) S.flag.shift(); }
     S.lat.push(m.us); if (S.lat.length > 2000) S.lat.shift();
     S.wall.push(performance.now()); if (S.wall.length > 80) S.wall.shift();
     if (S.fest > 1) S.feStart++;
@@ -129,7 +130,14 @@
       }
       return { kinds, injected: n };
     }
-    if (path === "/api/feedback") return { ok: true, fb: { fraud: 0, legit: 0, blocks: 0 }, blocklist: 0 };
+    if (path === "/api/feedback") { S.rev.add(b.id); return { ok: true, fb: { fraud: 0, legit: 0, blocks: 0 }, blocklist: 0 }; }
+    if (path === "/api/queue") {
+      const cs = S.flag.filter(m => !S.rev.has(m.id) && D.cases[m.id]).slice(-40).reverse().map(m => ({ id: m.id, ts: m.ts, uid: m.uid, amt: m.amt, chan: m.chan, cat: m.cat, city: m.city, dec: m.dec, p: m.p, hits: m.hits, why: D.cases[m.id].why }));
+      return { open: cs.length, cases: cs };
+    }
+    if (path === "/api/backtest/sample") return D.backtest;
+    if (path === "/api/backtest") return { __err: 422, detail: "Uploading your own file needs the live backend. The sample report was recorded from the real engine." };
+    if (path === "/api/audit") return { total: 0, rows: [] };
     if (path === "/api/confirm") return { ok: true };
     if (path.startsWith("/api/case/")) {
       const id = path.slice(10), c = D.cases[id];
@@ -150,7 +158,8 @@
     await ready;
     const o = opts || {};
     let r;
-    try { r = handle(u.slice(i).split("?")[0], o.method || "GET", o.body ? JSON.parse(o.body) : {}); } catch (e) { r = { __err: 500, detail: String(e) }; }
+    let bd = {}; try { bd = o.body ? JSON.parse(o.body) : {}; } catch (e) {}
+    try { r = handle(u.slice(i).split("?")[0], o.method || "GET", bd); } catch (e) { r = { __err: 500, detail: String(e) }; }
     return new Response(JSON.stringify(r.__err ? { detail: r.detail } : r), { status: r.__err || 200, headers: { "content-type": "application/json" } });
   };
 })();

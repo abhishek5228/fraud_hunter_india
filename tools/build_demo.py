@@ -15,7 +15,7 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from fh import api, drift, policy, whatif, train          # noqa: E402
+from fh import api, drift, policy, whatif, train, backtest, sample   # noqa: E402
 from fh.gen import T0, DAY, TYPS                           # noqa: E402
 from fh.sim import Sim                                     # noqa: E402
 
@@ -91,9 +91,13 @@ for risk in (0.25, 0.5, 1.0, 2.0, 4.0):
         for stp in (5, 15, 40):
             labs["%g|%g|%g" % (risk, churn, stp)] = whatif.lab(hold, policy.Cfg(risk=risk, churn=churn, step=stp))
 
+print("running the sample backtest ...")
+bt, _ = backtest.run(backtest.parse(sample.sample_csv())[0], g, policy.Cfg())
+bt.update(problems=[], model=api.model_version(), id="sample", sample=True)
+
 shapes = [dict(f=n, desc=api.DESC.get(n, ""), edges=g.el[j], v=g.sl[j]) for j, n in enumerate(g.names)]
 data = dict(
-    base=base, lib=lib, fest=fest, cases=cases, labs=labs, drift=dict(normal=drift_normal, fest=drift_fest),
+    backtest=bt, base=base, lib=lib, fest=fest, cases=cases, labs=labs, drift=dict(normal=drift_normal, fest=drift_fest),
     model=dict(rep={k: v for k, v in rep.items() if k != "ref"}, shapes=shapes, b0=g.b0, nfeat=len(g.names)),
     meta=dict(cities=[c[0] for c in api.CITY], nin=api.NIN, cats=sorted(api.CATS), kinds=TYPS, cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY, fest=1.0),
     cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY,
