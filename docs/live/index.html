@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fraud Hunter India · real-time payment risk engine</title>
+<link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="11" fill="none" stroke="#7f93ff" stroke-width="2"/><circle cx="13" cy="13" r="5" fill="none" stroke="#7f93ff" stroke-width="2"/><path d="M13 1v6M13 19v6M1 13h6M19 13h6" stroke="#7f93ff" stroke-width="2"/></svg>
+    <div>Fraud Hunter <small>risk engine for UPI, IMPS and cards</small></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="live" aria-selected="true">Live ops</button>
+    <button role="tab" data-tab="lab" aria-selected="false">Policy lab</button>
+    <button role="tab" data-tab="play" aria-selected="false">Playground</button>
+    <button role="tab" data-tab="model" aria-selected="false">Model card</button>
+  </nav>
+  <div class="ctl">
+    <label>Speed <input id="spd" type="range" min="30" max="900" step="10" value="150" aria-label="Simulation speed"></label>
+    <label>Fraud pressure <input id="bst" type="range" min="0" max="5" step="0.25" value="1" aria-label="Fraud pressure"></label>
+    <button class="btn dark" id="fest" aria-pressed="false">Festival surge: off</button>
+    <button class="btn dark" id="pause">Pause</button>
+    <div class="menu" id="atkm">
+      <button class="btn dark" id="atkb" aria-haspopup="true">Launch attack ▾</button>
+      <div class="pop" id="atkp">
+        <button data-k="upi_scam"><b>UPI payee scam</b><span>QR, refund and collect-request tricks</span></button>
+        <button data-k="vishing"><b>Vishing with screen-share</b><span>Customer is talked into paying a stranger</span></button>
+        <button data-k="sim_swap"><b>SIM-swap drain</b><span>Number ported, UPI re-bound, near-limit transfers</span></button>
+        <button data-k="ato"><b>Net-banking takeover</b><span>New device, new beneficiary, IMPS out</span></button>
+        <button data-k="card_test"><b>Card-testing burst</b><span>Bot probes a stolen card with ₹1–₹9 charges</span></button>
+        <button data-k="travel"><b>Cloned card</b><span>In-person use far from home</span></button>
+        <button data-k="mule"><b>Mule-ring cash-out</b><span>Accounts sharing devices pay out together</span></button>
+        <button data-k="mix"><b>Everything at once</b><span>One of each typology</span></button>
+      </div>
+    </div>
+    <div class="pill"><span class="dot" id="lv"></span><span id="clk">connecting</span></div>
+  </div>
+</header>
+<main>
+<section class="tab on" id="tab-live">
+  <div class="kpis" id="kpis"></div>
+  <div class="live">
+    <div class="col">
+      <div class="card feedc">
+        <h3>Live transactions <span class="note" id="fcount"></span></h3>
+        <div class="chips" id="chips">
+          <button class="chip" data-f="all" aria-pressed="true">All</button>
+          <button class="chip" data-f="flag" aria-pressed="false">Challenged or declined</button>
+          <button class="chip" data-f="miss" aria-pressed="false">Missed fraud</button>
+          <button class="chip" data-f="fa" aria-pressed="false">False alarms</button>
+        </div>
+        <div class="feed" id="feed"><div class="empty">Waiting for transactions…</div></div>
+      </div>
+    </div>
+    <div class="col"><div class="card insp" id="insp"><div class="empty">Select a transaction to see exactly why it was scored the way it was.</div></div></div>
+    <div class="col">
+      <div class="card"><h3>Where it's happening <span class="note sp">last few seconds</span></h3><canvas id="map" width="820" height="420" aria-label="Map of India with recent transactions"></canvas>
+        <div class="body" style="padding-top:6px"><div class="legend" id="maplg"></div></div></div>
+      <div class="card"><h3>Money, cumulative <span class="note sp">simulation truth</span></h3><div class="body chart" id="cum"></div></div>
+      <div class="card"><h3>Detection by attack type <span class="note sp">simulation truth</span></h3><div class="body" id="typ"></div></div>
+      <div class="card"><h3>Is traffic still what the model was trained on? <span class="status stable sp" id="dstat">checking</span></h3><div class="body" id="drift"><div class="empty">Collecting traffic…</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="tab" id="tab-lab">
+  <div class="lab">
+    <div class="card"><h3>Business costs</h3><div class="body" id="sliders"></div>
+      <div class="act" style="padding-top:0"><button class="btn pri" id="apply">Apply to live engine</button><button class="btn" id="resetcfg">Reset</button></div></div>
+    <div class="col" id="labout"></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-play">
+  <div class="play">
+    <div class="col">
+      <div class="card"><h3>Compose a transaction</h3><div class="body">
+        <div class="fm">
+          <label for="p-uid">Customer</label><select id="p-uid"></select>
+          <label for="p-amt">Amount (₹)</label><input id="p-amt" type="number" min="1" step="any" value="1500">
+          <label for="p-chan">Payment type</label><select id="p-chan"><option value="upi">UPI</option><option value="ecom">Card, online</option><option value="pos">Card, in person</option><option value="atm">ATM withdrawal</option><option value="imps">IMPS / net-banking transfer</option></select>
+          <label for="p-pay">Payee</label><select id="p-pay"><option value="known">A usual payee (saved contact or regular merchant)</option><option value="newmer">A merchant they have never paid</option><option value="peer">Another customer they have never paid</option><option value="newpers">A brand-new account never seen on the platform</option><option value="fan">A person four other customers just paid for the first time</option></select>
+          <label for="p-cat">Category</label><select id="p-cat"></select>
+          <label for="p-city">Location</label><select id="p-city"></select>
+          <label for="p-dev">Device</label><select id="p-dev"><option value="known">The customer's usual device</option><option value="new">A device never seen before</option></select>
+          <label for="p-ip">Network</label><select id="p-ip"><option value="known">The customer's usual network</option><option value="new">A network never seen before</option></select>
+          <label class="ck"><input type="checkbox" id="p-sim"> SIM was changed 6 hours ago</label>
+          <label class="ck"><input type="checkbox" id="p-rat"> A screen-sharing app is running</label>
+          <label class="ck"><input type="checkbox" id="p-coll"> Approving a collect request</label>
+        </div>
+        <div class="act" style="padding:12px 0 0"><button class="btn pri" id="p-go">Score it</button><span class="note" style="align-self:center">Dry run: nothing is remembered.</span></div>
+      </div></div>
+      <div class="card"><h3>Try a scenario</h3><div class="body scen" id="scen"></div></div>
+    </div>
+    <div class="col"><div class="card insp" id="pinsp"><div class="empty">Score a transaction to see the decision and its explanation.</div></div></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-model"><div class="col" id="modelout"></div></section>
+</main>
+<div id="tip" role="tooltip"></div>
+<script src="static/config.js"></script>
+<script src="static/lib.js"></script>
+<script src="static/live.js"></script>
+<script src="static/tabs.js"></script>
+</body>
+</html>
