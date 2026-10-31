@@ -109,7 +109,9 @@ def test_lite_plan_response_gives_network_not_city(client, monkeypatch):
 
 
 def test_huge_payment_from_stranger_is_never_waved_through(client):
-    r = client.post("/api/webhook/razorpay/replay", json=ev(2_500_000_00)).json()      # Rs 25 lakh on UPI, customer with no history
+    e1, e2 = ev(2_500_000_00), ev(250_000_00)
+    e1["payload"]["payment"]["entity"]["contact"], e2["payload"]["payment"]["entity"]["contact"] = "+910000000111", "+910000000222"   # fresh customers
+    r = client.post("/api/webhook/razorpay/replay", json=e1).json()      # Rs 25 lakh on UPI, customer with no history
     assert r["decision"] == "DECLINE" and "EXCEEDS_UPI_LIMIT" in r["reasons"] and "NEW_CUSTOMER_HIGH_VALUE" in r["reasons"]
-    r = client.post("/api/webhook/razorpay/replay", json=ev(250_000_00)).json()       # Rs 2.5 lakh from a stranger
+    r = client.post("/api/webhook/razorpay/replay", json=e2).json()       # Rs 2.5 lakh from a stranger
     assert r["decision"] in ("STEP_UP", "DECLINE") and "NEW_CUSTOMER_HIGH_VALUE" in r["reasons"]
