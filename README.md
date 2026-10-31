@@ -29,6 +29,24 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 | Festival peaks change what "normal" looks like | PSI drift monitor; a Festival-surge switch in the UI to see it fire | `/api/drift` |
 | Customers read Hindi or English | Bilingual customer message with the scam-safe advice (never share PIN or OTP, call 1930) | `explain.py` |
 
+## Fit it to your own CSV (`fh.fit`)
+
+```bash
+python -m fh.fit data.csv --out artifacts_mine          # auto-detects columns, trains, reports
+python -m fh.fit data.csv --map uid=sender_id,label=is_fraud   # fix a column the detector missed
+FH_ART=artifacts_mine python -m fh.backtest new.csv      # replay another file with the model you just fitted
+python -m fh.ingest raw.csv --out canon.csv              # only convert to the backtest format
+```
+
+Two paths, chosen automatically:
+
+- **events** (file has customer id + timestamp + payee): rows are replayed in time order through the same feature store as production (44 behavioural features, guardrails, expected-cost policy). The fitted `model.json` plugs into the backtest.
+- **tabular** (pre-engineered columns, no customer history): a GAM on the file's own columns, with per-row reasons via `python -m fh.fit --predict artifacts_mine new.csv --out scored.csv`.
+
+Safety rails: time-ordered split when time exists (random otherwise, and it says so); columns that give the label away (by name or by single-column AUC > 0.985) are removed and listed; AUC above 0.995 triggers a "too good to be real" warning; too few fraud rows is a refusal, not a guess; the logistic baseline is always printed next to the GAM.
+
+Tried on public synthetic UPI datasets: the 100k-row one gives AUC ~0.87 / AP 0.23 (time split); a 65-column one hits AUC 1.0, which the tool flags as unrealistic. None of this is evidence about real bank data.
+
 ## A tour
 
 | | |
