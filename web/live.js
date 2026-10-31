@@ -147,7 +147,8 @@ function connect() {
   es.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.t === "tx") { if (!S.paused) addTx(m.d); }
-    else {
+    else if (m.t === "wire") { if (window.wireLoad && $("#tab-wire").classList.contains("on")) wireLoad(); }
+    else if (m.t === "st") {
       const s = m.d; S.snap = s;
       $("#clk").textContent = stime(s.ts, true).replace(/\d{4}-\d{2}-\d{2} /, "") + " · " + s.tps.toFixed(0) + "/s";
       kpis(s); typTable(s);

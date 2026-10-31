@@ -29,6 +29,19 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 | Festival peaks change what "normal" looks like | PSI drift monitor; a Festival-surge switch in the UI to see it fire | `/api/drift` |
 | Customers read Hindi or English | Bilingual customer message with the scam-safe advice (never share PIN or OTP, call 1930) | `explain.py` |
 
+## Real-time integrations (Live wire tab)
+
+Everything is OFF until its environment variable is set (see `.env.example`); none can block scoring.
+
+| Integration | Variable | What it does |
+|---|---|---|
+| Razorpay webhook | `RAZORPAY_WEBHOOK_SECRET` | `POST /api/webhook/razorpay` accepts `payment.authorized/captured/failed` only with a valid HMAC-SHA256 signature, hashes phone/email into a pseudonymous id, scores it, and answers with `capture` / `hold for step-up` / `refuse`. Use **test mode**. |
+| IP intelligence | `IPINFO_TOKEN` | Real payer IP becomes a real city for the impossible-travel check. VPN, proxy or data-centre networks on payments of Rs 10,000+ escalate to step-up (`ANON_NETWORK`, escalate-only like every rule). Cached, 1.2 s timeout, fails open. |
+| Alerts | `TELEGRAM_BOT_TOKEN`+`TELEGRAM_CHAT_ID`, or `SLACK_WEBHOOK_URL` | Every step-up and decline is pushed with the reason. Background thread, rate limited, secrets never echoed. |
+| Load test | none | `POST /api/loadtest` times the engine on an isolated copy; `python tools/loadtest.py http://host --n 2000` measures real HTTP. |
+
+Honest limits: Razorpay is merchant-side, so the payee is always the merchant and the payee-graph signals are weak; the useful inputs are amount, velocity and whatever the merchant passes in `notes` (`ip`, `device_id`, `city`). A webhook arrives after authorisation, so the verdict is a hold/refund recommendation, not a pre-authorisation block. The engine-only benchmark (about 9,000 payments/s, p99 ~0.25 ms on one Python process) excludes network and JSON; over HTTP in this sandbox, with the load generator on the same machine, it was ~350 req/s at p50 44 ms.
+
 ## Fit it to your own CSV (`fh.fit`)
 
 ```bash

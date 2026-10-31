@@ -7,3 +7,5 @@ artifacts/
 dist/
 samples/
 artifacts_hard/
+
+.env

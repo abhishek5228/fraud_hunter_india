@@ -17,6 +17,7 @@
     <button role="tab" data-tab="review" aria-selected="false">Review</button>
     <button role="tab" data-tab="backtest" aria-selected="false">Backtest</button>
     <button role="tab" data-tab="redteam" aria-selected="false">Red team</button>
+    <button role="tab" data-tab="wire" aria-selected="false">Live wire</button>
     <button role="tab" data-tab="lab" aria-selected="false">Policy lab</button>
     <button role="tab" data-tab="play" aria-selected="false">Playground</button>
     <button role="tab" data-tab="model" aria-selected="false">Model card</button>
@@ -114,6 +115,29 @@
   </div>
 </section>
 
+<section class="tab" id="tab-wire">
+  <div class="lab" style="grid-template-columns:420px 1fr">
+    <div class="col">
+      <div class="card"><h3>Connections</h3><div class="body" id="w-status"><div class="empty">Loading…</div></div></div>
+      <div class="card"><h3>Send a Razorpay-shaped payment</h3><div class="body">
+        <div class="fm">
+          <label for="w-amt">Amount (₹)</label><input id="w-amt" type="number" min="1" value="45000">
+          <label for="w-ip">Payer IP (optional)</label><input id="w-ip" type="text" placeholder="e.g. 49.36.12.5 (needs IPINFO_TOKEN)">
+          <label for="w-city">City (optional)</label><input id="w-city" type="text" placeholder="Mumbai">
+        </div>
+        <button class="btn" id="w-send">Send through the webhook path</button> <button class="btn ghost" id="w-alert">Send test alert</button> <button class="btn ghost" id="w-load">Run load test</button>
+        <div class="note" id="w-msg" role="status" style="margin-top:8px"></div>
+      </div></div>
+      <div class="card"><h3>Point Razorpay at this</h3><div class="body note" style="line-height:1.6">
+        Dashboard → Settings → Webhooks → add <span class="mono" id="w-url"></span>, tick <span class="mono">payment.authorized, payment.captured, payment.failed</span>, copy the secret into the server's <span class="mono">RAZORPAY_WEBHOOK_SECRET</span>. Use <b>test mode</b>. Pass <span class="mono">notes.ip</span>, <span class="mono">notes.device_id</span>, <span class="mono">notes.city</span> at checkout for the strongest signals. Requests are accepted only with a valid HMAC signature. Phone numbers and emails are hashed before they reach the engine.
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card"><h3>Latest decisions from the wire</h3><div class="body" id="w-list"><div class="empty">No webhook payments yet. Send one on the left.</div></div></div>
+      <div class="card" id="w-loadcard" hidden><h3>Engine speed</h3><div class="body" id="w-loadout"></div></div>
+    </div>
+  </div>
+</section>
 <section class="tab" id="tab-lab">
   <div class="lab">
     <div class="card"><h3>Business costs</h3><div class="body" id="sliders"></div>

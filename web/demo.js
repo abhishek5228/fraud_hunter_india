@@ -138,6 +138,9 @@
     if (path === "/api/backtest/sample") return D.backtest;
     if (path === "/api/backtest") return { __err: 422, detail: "Uploading your own file needs the live backend. The sample report was recorded from the real engine." };
     if (path === "/api/audit") return { total: 0, rows: [] };
+    if (path === "/api/integrations") return { razorpay: { on: false, ok: 0, bad_sig: 0, ignored: 0 }, ipinfo: { on: false, cached: 0, errors: 0 }, alerts: { channels: [], sent: 0, dropped: 0, failed: 0 }, auth: false };
+    if (path === "/api/wire") return { events: [] };
+    if (path.startsWith("/api/webhook") || path === "/api/alerts/test" || path.startsWith("/api/loadtest")) return { __err: 422, detail: "Demo mode: this needs the live backend. Nothing here is simulated." };
     if (path === "/api/redteam/run") return D.redteam.run;
     if (path === "/api/redteam/rounds") return D.redteam.rounds;
     if (path === "/api/confirm") return { ok: true };

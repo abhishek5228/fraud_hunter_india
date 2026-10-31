@@ -34,8 +34,54 @@ function tabbing() {
     $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $$(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
     if (b.dataset.tab === "lab") lab(); if (b.dataset.tab === "model") model(); if (b.dataset.tab === "play") play();
-    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab();
+    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab(); if (b.dataset.tab === "wire") wireTab();
   }));
+}
+
+/* ------------------------------------------------------------ live wire */
+let wireT = null, wireBound = false;
+const sampleRz = (amt, notes) => ({ event: "payment.captured", payload: { payment: { entity: { id: "pay_" + Math.random().toString(36).slice(2, 10), amount: Math.round(amt * 100), currency: "INR", method: "upi", status: "captured",
+  contact: "+9198" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0"), order_id: "order_demo", created_at: Math.floor(Date.now() / 1000), notes } } } });
+async function wireTab() {
+  if (!wireBound) {
+    wireBound = true;
+    $("#w-url").textContent = (window.FH_API || location.origin) + "/api/webhook/razorpay";
+    const msg = t => { $("#w-msg").textContent = t; };
+    $("#w-send").onclick = async () => {
+      const n = {}; if ($("#w-ip").value.trim()) n.ip = $("#w-ip").value.trim(); if ($("#w-city").value.trim()) n.city = $("#w-city").value.trim();
+      try { const r = await api("/api/webhook/razorpay/replay", sampleRz(+$("#w-amt").value || 1000, n)); msg(r.ignored ? "Ignored: " + r.ignored : r.decision + " (risk " + r.risk + "%) → " + r.action + (r.reasons.length ? " · " + r.reasons.join(", ") : "") + " · location " + r.location); wireLoad(); }
+      catch (e) { msg(e.message); }
+    };
+    $("#w-alert").onclick = async () => { try { const r = await api("/api/alerts/test", {}); msg("Alert test: " + Object.entries(r).map(([k, v]) => k + " " + v).join(", ")); } catch (e) { msg(e.message); } };
+    $("#w-load").onclick = async () => {
+      msg("Timing 3,000 payments…");
+      try {
+        const r = await api("/api/loadtest?n=3000", {}); msg("");
+        $("#w-loadcard").hidden = false;
+        $("#w-loadout").replaceChildren(el("div", { class: "kpis", style: "grid-template-columns:repeat(3,1fr)" },
+          ...[["Throughput", r.per_sec.toLocaleString("en-IN") + "/s", r.n.toLocaleString("en-IN") + " payments in " + r.seconds + " s"], ["Median", (r.p50_us / 1000).toFixed(2) + " ms", "mean " + (r.mean_us / 1000).toFixed(2) + " ms"],
+            ["p99", (r.p99_us / 1000).toFixed(2) + " ms", "p95 " + (r.p95_us / 1000).toFixed(2) + " ms · worst " + (r.max_us / 1000).toFixed(1) + " ms"]].map(([l, v, s]) => el("div", { class: "kpi" }, el("div", { class: "l" }, l), el("div", { class: "v" }, v), el("div", { class: "s" }, s)))),
+          el("div", { class: "note", style: "margin-top:8px" }, r.note));
+      } catch (e) { msg(e.message); }
+    };
+  }
+  if (!wireT) wireT = setInterval(() => { if ($("#tab-wire").classList.contains("on")) wireLoad(); }, 3000);
+  wireLoad();
+}
+async function wireLoad() {
+  let ig, w;
+  try { [ig, w] = await Promise.all([api("/api/integrations"), api("/api/wire")]); } catch (e) { $("#w-status").replaceChildren(el("div", { class: "empty" }, "This tab needs the live backend (" + e.message + ")")); return; }
+  const dot = on => el("span", { class: "tag " + (on ? "d0" : "d1"), style: "min-width:44px;text-align:center" }, on ? "ON" : "OFF");
+  const row = (n, on, d) => el("div", { style: "display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)" }, dot(on), el("div", null, el("b", null, n), el("div", { class: "sub" }, d)));
+  $("#w-status").replaceChildren(
+    row("Razorpay webhook", ig.razorpay.on, ig.razorpay.on ? ig.razorpay.ok + " scored · " + ig.razorpay.bad_sig + " rejected (bad signature) · " + ig.razorpay.ignored + " ignored" : "set RAZORPAY_WEBHOOK_SECRET on the server"),
+    row("IP intelligence (ipinfo.io)", ig.ipinfo.on, ig.ipinfo.on ? ig.ipinfo.cached + " IPs cached · " + ig.ipinfo.errors + " lookup errors" : "set IPINFO_TOKEN: real IP → city + VPN / data-centre detection"),
+    row("Alerts", ig.alerts.channels.length > 0, ig.alerts.channels.length ? ig.alerts.channels.join(" + ") + " · " + ig.alerts.sent + " sent · " + ig.alerts.dropped + " rate-limited · " + ig.alerts.failed + " failed" : "set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID, or SLACK_WEBHOOK_URL"),
+    row("API key on scoring endpoints", ig.auth, ig.auth ? "X-API-Key required" : "open (set FH_API_KEY before going public)"));
+  $("#w-list").replaceChildren(...(w.events.length ? w.events.map(e => el("div", { class: "row", style: "grid-template-columns:62px 1fr 84px 74px" },
+    el("div", { class: "t" }, stime(e.t)),
+    el("div", { class: "m" }, el("div", null, el("b", null, e.method || e.chan), " · ", e.uid), el("div", { class: "sub" }, (e.codes.join(", ") || e.why) + (e.anon ? " · VPN/proxy network" : "") + " · " + e.us + " µs")),
+    el("div", { class: "a" }, money(e.amt, 0)), el("div", { style: "text-align:right" }, el("span", { class: "tag d" + e.dec }, DN[e.dec])))) : [el("div", { class: "empty" }, "No webhook payments yet. Send one on the left.")]));
 }
 
 /* ------------------------------------------------------------ review queue */

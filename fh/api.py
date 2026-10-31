@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
+from . import integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -27,6 +27,7 @@ from .sim import Sim
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "web")
 S = {}  # app state
+WIRE = []  # last webhook decisions, newest last
 
 
 def load():
@@ -65,7 +66,7 @@ async def life(app):
             eng.st = old
             print("restored feature store from", STATE)
     S.update(g=g, w=w, rep=rep, h=h, eng=eng, sim=Sim(eng, w, T0 + train.DAYS * DAY), subs=set(), fb=dict(fraud=0, legit=0, blocks=0),
-             ver=model_version(), aud=audit.Audit(os.environ.get("FH_AUDIT_DB", os.path.join(train.ART, "audit.db"))), reviewed=set(), bt={})
+             ver=model_version(), aud=audit.Audit(os.environ.get("FH_AUDIT_DB", os.path.join(train.ART, "audit.db"))), reviewed=set(), bt={}, ip=itg.IpIntel(), nt=itg.Notifier(), hook=dict(ok=0, bad_sig=0, ignored=0))
     task = asyncio.create_task(pump())
     yield
     task.cancel()
@@ -154,22 +155,41 @@ async def score(t: Tx):
         raise HTTPException(422, "amt must be > 0")
     if t.chan not in ("upi", "ecom", "pos", "atm", "imps"):
         raise HTTPException(422, "chan must be upi, ecom, pos, atm or imps")
-    x = t.model_dump()
-    commit = x.pop("commit")
-    x["pers"] = bool(x["pers"]) if x["pers"] is not None else t.cat in PERS_CATS
-    x["sim"] = x["sim"] if x["sim"] is not None else 1e4
-    x["ts"] = x["ts"] or S["sim"].clk
-    c = next((c for c in CITY if c[0] == x["city"]), None)
+    return await _decide(t.model_dump(), "api")
+
+
+async def _decide(x, src):
+    """One code path for every entry point (REST, webhook, load test): resolve location, score, guard, audit, alert."""
+    commit = x.pop("commit", True)
+    x["pers"] = bool(x["pers"]) if x.get("pers") is not None else x["cat"] in PERS_CATS
+    x["sim"] = x["sim"] if x.get("sim") is not None else 1e4
+    x["ts"] = x.get("ts") or S["sim"].clk
+    anon = False
+    if x.get("ip") and not (x.get("city") or x.get("lat") is not None):
+        g = await run_in_threadpool(S["ip"].lookup, x["ip"])               # real IP -> real place; None when off, private, slow or unknown
+        if g and g["lat"] is not None:
+            x["city"], x["lat"], x["lon"], x["cty"] = g["city"], g["lat"], g["lon"], g["cty"] or "IN"
+        anon = bool(g and g["anon"])
+    c = next((c for c in CITY if c[0] == x.get("city")), None)
     if c:
-        x["lat"], x["lon"], x["cty"] = x["lat"] or c[1], x["lon"] or c[2], x["cty"] or c[3]
-    if x["lat"] is None or x["lon"] is None or not x["cty"]:
-        raise HTTPException(422, "give a known city or lat/lon/cty")
-    x["city"] = x["city"] or ""
-    x["lab"], x["typ"] = 0, "api"
-    res = S["eng"].score(x, commit=commit)
-    res["model"] = S["ver"]
+        x["lat"], x["lon"], x["cty"] = x.get("lat") or c[1], x.get("lon") or c[2], x.get("cty") or c[3]
+    if x.get("lat") is None or x.get("lon") is None or not x.get("cty"):
+        raise HTTPException(422, "give a known city or lat/lon/cty (or an ip, with IPINFO_TOKEN set)")
+    x["city"] = x.get("city") or ""
+    x["lab"], x["typ"] = 0, src
+    res = S["eng"].score(x, commit=False)
+    if anon and x["amt"] >= 10000:                           # escalate only, like every rule: a VPN/proxy/data-centre network on a large payment
+        res["hits"].append(dict(lvl=1, code="ANON_NETWORK", msg="Payment came from a VPN, proxy or data-centre network"))
+        if res["dec"] == 0:
+            res["dec"], res["dname"] = 1, policy.NAMES[1]
+            from . import explain
+            res["msg"] = explain.customer_msg(1, x["amt"], x["mid"], ["ANON_NETWORK"])
+    if commit:
+        S["eng"].st.commit(x, upd=res["dec"] == 0)
+    res["model"], res["anon"] = S["ver"], anon
     S["aud"].log("score", res["id"], res["uid"], res["amt"], res["chan"], res["dname"], res["p"], [h["code"] for h in res["hits"]], S["ver"],
-                 dict(commit=commit, src="api"))
+                 dict(commit=commit, src=src))
+    S["nt"].alert(res, src)
     return res
 
 
@@ -439,3 +459,102 @@ async def index():
 
 
 app.mount("/static", StaticFiles(directory=WEB), name="static")
+
+
+# ---------------------------------------------------------------- integrations
+def _wire(res, ref, method, event):
+    WIRE.append(dict(t=time.time(), ref=ref, uid=res["uid"], amt=res["amt"], chan=res["chan"], method=method, event=event, p=res["p"], dec=res["dec"],
+                     dname=res["dname"], codes=[h["code"] for h in res["hits"]], why=res["why"], city=res["city"], anon=res["anon"], us=round(res["lat_us"])))
+    del WIRE[:-60]
+
+
+async def _hook(ev):
+    tx, why = itg.razorpay_to_tx(ev)
+    if tx is None:
+        S["hook"]["ignored"] += 1
+        return dict(ok=True, ignored=why)
+    ref, status, event, method = tx.pop("ref"), tx.pop("status"), tx.pop("event"), tx.pop("method")
+    if not tx.get("city") and not tx.get("ip"):
+        tx["city"] = "Mumbai"            # no location context supplied: geo signals are neutral, and the response says so
+        neutral = True
+    else:
+        neutral = False
+    res = await _decide(dict(tx, coll=False, rat=False, commit=True), "razorpay")
+    _wire(res, ref, method, event)
+    S["hook"]["ok"] += 1
+    bc({"t": "wire", "d": WIRE[-1]})
+    return dict(ok=True, payment=ref, decision=res["dname"], risk=res["score"], reasons=[h["code"] for h in res["hits"]],
+                action={0: "capture", 1: "hold for step-up / manual review", 2: "refuse / refund"}[res["dec"]],
+                location="not supplied (neutral)" if neutral else "from notes.ip / notes.city")
+
+
+@app.post("/api/webhook/razorpay")
+async def razorpay_hook(req: Request):
+    """Razorpay webhook. Authenticated by HMAC signature, not by X-API-Key (Razorpay cannot send custom headers)."""
+    secret = os.environ.get("RAZORPAY_WEBHOOK_SECRET")
+    if not secret:
+        raise HTTPException(503, "RAZORPAY_WEBHOOK_SECRET is not set on the server")
+    raw = await req.body()
+    if len(raw) > 200_000:
+        raise HTTPException(413, "payload too large")
+    if not itg.verify_razorpay(raw, req.headers.get("x-razorpay-signature", ""), secret):
+        S["hook"]["bad_sig"] += 1
+        raise HTTPException(401, "bad signature")
+    try:
+        ev = json.loads(raw)
+    except ValueError:
+        raise HTTPException(400, "body is not JSON")
+    return await _hook(ev)
+
+
+@app.post("/api/webhook/razorpay/replay", dependencies=[Depends(guard)])
+async def razorpay_replay(req: Request):
+    """Demo/testing: feed a Razorpay-shaped event through the same path WITHOUT a signature (still needs X-API-Key if one is set)."""
+    return await _hook(await req.json())
+
+
+@app.get("/api/wire")
+async def wire():
+    return dict(events=WIRE[-30:][::-1])
+
+
+@app.get("/api/integrations")
+async def integrations():
+    ip = S["ip"]
+    return dict(
+        razorpay=dict(on=bool(os.environ.get("RAZORPAY_WEBHOOK_SECRET")), url="/api/webhook/razorpay", **S["hook"]),
+        ipinfo=dict(on=ip.on, cached=len(ip.cache), cache_hits=ip.hits, errors=ip.errs),
+        alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")))
+
+
+@app.post("/api/alerts/test", dependencies=[Depends(guard)])
+async def alert_test():
+    if not S["nt"].channels:
+        raise HTTPException(409, "no alert channel configured (set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID, or SLACK_WEBHOOK_URL)")
+    return await run_in_threadpool(S["nt"].test)
+
+
+@app.post("/api/loadtest", dependencies=[Depends(guard)])
+async def loadtest(n: int = 3000):
+    """Time the engine on n fresh payments (isolated copy of the store: nothing here touches live state)."""
+    n = max(200, min(n, 20000))
+
+    import copy
+    import statistics
+    w, sim = S["w"], S["sim"]
+    eng = Engine(S["g"], copy.deepcopy(S["eng"].st), S["eng"].cfg, keep=1)      # private copy, taken on the event loop so it is consistent
+    evs = list(w.window(random.Random(5), sim.clk, sim.clk + 24 * 3600, 1.0))[:n]
+
+    def run():
+        lat, t0 = [], time.perf_counter()
+        for x in evs:
+            a = time.perf_counter_ns()
+            eng.score(x, commit=True)
+            lat.append((time.perf_counter_ns() - a) / 1000.0)
+        dt = time.perf_counter() - t0
+        lat.sort()
+        q = lambda f: lat[min(len(lat) - 1, int(f * len(lat)))]
+        return dict(n=len(lat), seconds=round(dt, 2), per_sec=round(len(lat) / dt), p50_us=round(q(.5)), p95_us=round(q(.95)), p99_us=round(q(.99)),
+                    max_us=round(lat[-1]), mean_us=round(statistics.fmean(lat)),
+                    note="single Python process, engine only (features + model + rules + policy). Network and JSON add more; tools/loadtest.py measures HTTP end to end.")
+    return await run_in_threadpool(run)
