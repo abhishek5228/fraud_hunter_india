@@ -1,0 +1,7 @@
+services:
+  fraud-hunter:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      FH_ORIGINS: "*"        # restrict to your frontend's origin in production
+    restart: unless-stopped

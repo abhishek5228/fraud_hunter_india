@@ -10,7 +10,7 @@ All data is synthetic. The numbers below show the engineering, not real-world pe
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # then open http://localhost:8000
-python -m pytest -q tests                   # 21 tests
+python -m pytest -q tests                   # 24 tests
 ```
 Or `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`.
 
@@ -47,6 +47,18 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 
 ![Model card](docs/model.png)
 
+## Run it, ship it
+
+One frontend, three ways to host it. [DEPLOY.md](DEPLOY.md) has the details, the integration contract and a troubleshooting table.
+
+| | Command | Needs a server |
+|---|---|---|
+| All-in-one | `docker compose up --build`, or `uvicorn fh.api:app --port 8000 --workers 1` | One container |
+| Frontend on a CDN, API elsewhere | `python tools/build_site.py --api https://your-api` | API only |
+| Static demo of real recorded decisions | `python tools/build_site.py --demo` | None |
+
+`render.yaml` is a one-click Render blueprint. The demo build also produces a single 3 MB HTML file that runs from disk.
+
 ## Architecture
 
 ```
@@ -76,7 +88,9 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 5. **Exact explanations.** The model is additive, so each feature's contribution is the model's own arithmetic. The bars plus the baseline sum exactly to the logit (tested). No surrogate.
 6. **Cost-aware, amount-aware, rail-aware.** `approve = p x (loss x amount + fee)`; `decline = (1 - p) x (margin x amount + churn)`; `step-up = challenge cost + residual risk and abandonment`. The cheapest wins per payment. Margin is a function of the rail: cards earn about 1.8%; UPI to a person, IMPS and ATM earn none; UPI to a merchant above Rs 2,000 earns 0.4% under NPCI's framework effective 15 Oct 2026.
 7. **Rules only escalate, and they are proportionate.** An impossible-travel hit blocks card-present use but only challenges an online payment on a *known device* (probably a VPN). A screen-share is only worth interrupting for a person payee or Rs 5,000 and up. A kiosk phone is only blocked when paying a stranger.
-8. **Drift monitoring that does not cry wolf.** PSI against the most recent period the model saw, minus the PSI that pure sampling noise would produce for that sample size, and the diurnal `hrar` feature excluded.
+8. **Attempts versus trust.** Velocity counts every attempt, even declined or pending ones, because a bot's refused micro-charges are the signal. The behavioural profile (typical spend, trusted devices) only learns from payments that were approved or whose challenge was passed. Splitting the two lifted average precision from 0.934 to 0.960 and let a card-testing bot escalate from challenge to block on its fourth charge.
+9. **Two-phase step-up.** `score`, then `confirm`. A challenged payment does not teach the engine to trust its device until the challenge is passed. An earlier version trusted it immediately, which a bot could exploit.
+10. **Drift monitoring that does not cry wolf.** PSI against the most recent period the model saw, minus the PSI that pure sampling noise would produce for that sample size, and the diurnal `hrar` feature excluded.
 
 ## Results
 
@@ -84,36 +98,37 @@ Held-out last 12 days: 53,789 payments, 908 fraud.
 
 | | GAM (shipped) | Logistic baseline |
 |---|---|---|
-| ROC AUC | 0.9975 | 0.9973 |
-| Average precision | 0.934 | 0.943 |
-| Recall at 1% false alarms | 94.8% | 96.2% |
-| Recall at 0.1% false alarms | 76.5% | 77.3% |
-| Calibration error (ECE) | 0.0015 | 0.0017 |
+| ROC AUC | 0.9987 | 0.9990 |
+| Average precision | 0.960 | 0.971 |
+| Recall at 1% false alarms | 96.8% | 98.0% |
+| Recall at 0.1% false alarms | 86.6% | 89.7% |
+| Calibration error (ECE) | 0.0009 | 0.0007 |
 
-**The plain logistic model is at least as accurate as the GAM here.** The GAM converged by round 240, so it is not undertrained. It is also additive, with exact contributions, so I ship it for the non-linear shapes in the Model card, not for accuracy. Pairwise interaction terms are the obvious next step.
+**The plain logistic model is at least as accurate as the GAM here.** The GAM converged well before its round limit, so it is not undertrained. It is also additive, with exact contributions, so I ship it for the non-linear shapes in the Model card, not for accuracy. Pairwise interaction terms are the obvious next step.
 
 **What the policy buys** (same 12 days, default costs):
 
 | Approach | Total cost | Fraud caught | Good customers touched |
 |---|---|---|---|
-| **This policy (amount- and rail-aware)** | **Rs 1.91 L** | 98.3% | 3.4% |
-| Best *tuned* step-up + decline thresholds | Rs 2.19 L | 98.8% | 4.8% |
-| Best tuned single threshold | Rs 5.58 L | 96.1% | 1.3% |
-| Untuned: decline above 50% | Rs 15.1 L | 80.4% | 0.1% |
-| Hard rules only | Rs 36.6 L | 55.9% | 1.0% |
+| **This policy (amount- and rail-aware)** | **Rs 1.34 L** | 98.6% | 2.7% |
+| Best *tuned* step-up + decline thresholds | Rs 1.66 L | 99.0% | 3.2% |
+| Best tuned single threshold | Rs 3.52 L | 95.7% | 0.6% |
+| Untuned: decline above 50% | Rs 10.9 L | 85.0% | 0.1% |
+| Hard rules only | Rs 36.5 L | 58.0% | 1.0% |
 | Approve everything | Rs 1.82 Cr | 0% | 0% |
 
-The tuned baselines were fitted on this very period, which flatters them. The amount-aware policy is still 13% cheaper than tuned tiers and 66% cheaper than the best single threshold.
+The tuned baselines were fitted on this very period, which flatters them. The amount-aware policy is still 19% cheaper than tuned tiers and 62% cheaper than the best single threshold.
 
-**Speed:** the engine alone scores about 12,800 payments per second on one Python thread (p50 63 microseconds, p99 151 microseconds, features through explanation). Inside the live server the UI shows roughly 200 microseconds.
+**Speed:** the engine alone scores about 12,700 payments per second on one Python thread (p50 61 microseconds, p99 220 microseconds, features through explanation). Inside the live server the UI shows roughly 200 microseconds.
 
 ## Where it is weak (shown, not hidden)
 
 - **Step-up is not a silver bullet.** The policy assumes 8% of fraudsters pass an OTP challenge. In the simulator a SIM-swapper receives the OTP, a vished customer reads it out and a scammed customer approves it, so those pass 45% to 60% of the time. Stopping them takes friction aimed at the scam: first-payee warnings, cooling-off periods, blocking screen-share.
-- **Scams without a screen-share** are the hardest case: 64% to 68% declined outright.
-- **IMPS transfers** touch 13.6% of good customers, because large transfers to new beneficiaries look like account takeover.
-- **Rent day** (a large first payment to a new account) is flagged 66% of the time.
-- **Shared kiosk phones** still draw 15% friction.
+- **Scams without a screen-share** are the hardest case: only about 75% are declined outright.
+- **IMPS transfers** touch 10.8% of good customers, because large transfers to new beneficiaries look like account takeover.
+- **Rent day** (a large first payment to a new account) is flagged 47% of the time.
+- **Shared kiosk phones** still draw 14% friction.
+- **"Never seen on the platform" is stronger in the simulator than it would be in reality**, because every legitimate payee here is an existing customer. A real bank sees many genuine payees for the first time.
 - The SIM-change signal assumes telecom data that only some banks receive; the simulator reflects that with 60% coverage.
 
 ## Facts this project relies on

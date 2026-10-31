@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fraud Hunter India · real-time payment risk engine</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="static/style.css">
 </head>
 <body>
 <header class="top">
@@ -82,7 +82,7 @@
           <label for="p-uid">Customer</label><select id="p-uid"></select>
           <label for="p-amt">Amount (₹)</label><input id="p-amt" type="number" min="1" step="any" value="1500">
           <label for="p-chan">Payment type</label><select id="p-chan"><option value="upi">UPI</option><option value="ecom">Card, online</option><option value="pos">Card, in person</option><option value="atm">ATM withdrawal</option><option value="imps">IMPS / net-banking transfer</option></select>
-          <label for="p-pay">Payee</label><select id="p-pay"><option value="known">A usual payee (saved contact or regular merchant)</option><option value="newmer">A merchant they have never paid</option><option value="newpers">A person they have never paid</option><option value="fan">A person four other customers just paid for the first time</option></select>
+          <label for="p-pay">Payee</label><select id="p-pay"><option value="known">A usual payee (saved contact or regular merchant)</option><option value="newmer">A merchant they have never paid</option><option value="peer">Another customer they have never paid</option><option value="newpers">A brand-new account never seen on the platform</option><option value="fan">A person four other customers just paid for the first time</option></select>
           <label for="p-cat">Category</label><select id="p-cat"></select>
           <label for="p-city">Location</label><select id="p-city"></select>
           <label for="p-dev">Device</label><select id="p-dev"><option value="known">The customer's usual device</option><option value="new">A device never seen before</option></select>
@@ -102,8 +102,9 @@
 <section class="tab" id="tab-model"><div class="col" id="modelout"></div></section>
 </main>
 <div id="tip" role="tooltip"></div>
-<script src="/static/lib.js"></script>
-<script src="/static/live.js"></script>
-<script src="/static/tabs.js"></script>
+<script src="static/config.js"></script>
+<script src="static/lib.js"></script>
+<script src="static/live.js"></script>
+<script src="static/tabs.js"></script>
 </body>
 </html>

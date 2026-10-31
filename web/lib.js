@@ -33,7 +33,7 @@ const railK = (chan, a, pers) => (chan === "pos" || chan === "ecom") ? 1 : (chan
 const TYPN = { card_test: "Card testing", travel: "Cloned card", high_value: "Stolen-card splurge", ato: "Net-banking takeover", sim_swap: "SIM-swap drain", vishing: "Vishing and screen-share", upi_scam: "UPI payee scam", mule: "Mule cash-out" };
 const DN = ["Approve", "Step-up", "Decline"];
 const api = async (u, body) => {
-  const r = await fetch(u, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const r = await fetch((window.FH_API || "") + u, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(u + " " + r.status);
   return r.json();
 };

@@ -52,13 +52,16 @@ async function lab() {
   if (!LABV) {
     const base = await api("/api/policy"); DEF = { ...base }; LABV = { ...base };
     const h = $("#sliders");
-    for (const [k, name, desc, mn, mx, st, fmt, inv] of SL) {
+    const DM = window.FH_DEMO ? { risk: [-0.602, 0.602, 0.301], churn: [150, 1000, 25], step: [5, 40, 1] } : null;   // recorded grid
+    for (const [k, name, desc, mn0, mx0, st0, fmt, inv] of SL) {
+      const dm = DM && DM[k], mn = dm ? dm[0] : mn0, mx = dm ? dm[1] : mx0, st = dm ? dm[2] : st0;
       const init = k === "risk" ? Math.log10(base[k]) : base[k];
       const o = el("output", { id: "o-" + k }, fmt(init));
-      const inp = el("input", { type: "range", id: "s-" + k, min: mn, max: mx, step: st, value: init, "aria-label": name });
+      const inp = el("input", { type: "range", id: "s-" + k, min: mn, max: mx, step: st, value: init, "aria-label": name, disabled: DM && !dm ? "" : null });
       inp.addEventListener("input", () => { o.textContent = fmt(+inp.value); LABV[k] = inv(+inp.value); clearTimeout(labT); labT = setTimeout(runLab, 90); });
       h.append(el("div", { class: "sl" }, el("label", { for: "s-" + k }, name), o, inp, el("div", { class: "d" }, desc)));
     }
+    if (DM) h.append(el("div", { class: "note" }, "Demo mode: risk aversion, churn cost and challenge cost snap to 45 recorded settings. Fee, margin and pass rates are fixed. Run the backend for full control."));
     $("#apply").onclick = async () => { await api("/api/policy", LABV); S.cfg = null; $("#apply").textContent = "Applied. Live decisions now use these costs"; setTimeout(() => ($("#apply").textContent = "Apply to live engine"), 2500); };
     $("#resetcfg").onclick = () => { LABV = { ...DEF }; for (const [k, , , , , , fmt] of SL) { const v = k === "risk" ? Math.log10(DEF[k]) : DEF[k]; $("#s-" + k).value = v; $("#o-" + k).textContent = fmt(v); } runLab(); };
   }
@@ -116,9 +119,13 @@ async function play() {
   $("#p-cat").append(...PM.cats.filter(c => !["p2p", "bank_transfer", "atm_cash"].includes(c)).map(c => el("option", { value: c, selected: c === "digital" ? "" : null }, c.replace("_", " "))));
   $("#p-city").append(el("option", { value: "" }, "Customer's home city"), ...PM.cities.map((c, i) => el("option", { value: c }, c + (i >= PM.nin ? " (abroad)" : ""))));
   $("#p-go").onclick = () => playGo();
+  if (window.FH_DEMO) {
+    $$("#tab-play .fm select, #tab-play .fm input, #p-go").forEach(e => (e.disabled = true));
+    $("#p-go").parentElement.replaceChildren($("#p-go"), el("span", { class: "note", style: "align-self:center" }, "Free-form scoring needs the backend. The scenarios below replay real recorded runs."));
+  }
   const sc = [
     ["Chai and groceries", "₹180 UPI payment to a usual merchant", async () => post({ amt: 180, cat: "grocery", chan: "upi", pay: "known" })],
-    ["Paying a new person", "₹3,500 UPI to someone new: common and usually fine", async () => post({ amt: 3500, chan: "upi", pay: "newpers" })],
+    ["Paying another customer", "₹3,500 UPI to someone they have never paid: common, usually fine", async () => post({ amt: 3500, chan: "upi", pay: "peer" })],
     ["Rent day", "₹22,000 IMPS to the usual landlord account", async () => post({ amt: 22000, chan: "imps", pay: "ben" })],
     ["SIM-swap drain", "New phone, SIM changed 3 hours ago, ₹49,500 to a stranger", async () => post({ amt: 49500, chan: "upi", pay: "newpers", dev: "new", ip: "new", sim: 3 })],
     ["Vishing with screen-share", "Own phone, caller on the line, screen shared, ₹38,000 to a stranger", async () => post({ amt: 38000, chan: "upi", pay: "newpers", rat: true })],
@@ -143,6 +150,7 @@ async function post(o) {
   let mid, cat = o.cat || "digital", pers = false;
   if (ch === "atm") { mid = "atm-" + u.city; cat = "atm_cash"; }
   else if (o.pay === "newpers" || o.pay === "fan") { mid = `pg${rid()}@${hnd}`; cat = ch === "imps" ? "bank_transfer" : "p2p"; pers = true; }
+  else if (o.pay === "peer") { mid = (PU.find(v => v.uid !== u.uid) || u).vpa; cat = ch === "imps" ? "bank_transfer" : "p2p"; pers = true; }
   else if (o.pay === "ben") { mid = u.ben; cat = "bank_transfer"; pers = true; }
   else if (o.pay === "newmer") mid = `pgshop${rid()}@${hnd}`;
   else if (ch === "imps") { mid = u.ben; cat = "bank_transfer"; pers = true; }
