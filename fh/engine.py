@@ -41,8 +41,19 @@ class Engine:
         if len(s.cases) > s.keep:
             s.cases.popitem(last=False)
         if commit:
-            s.st.commit(x, upd=dec != 2)
+            # Only an approved payment teaches us what the customer normally does. A challenged one is pending:
+            # the graph learns who touched what, but the device is not trusted until `confirm` says it passed.
+            s.st.commit(x, upd=dec == 0)
         return res
+
+    def confirm(s, cid, passed):
+        """Second phase for a challenged payment: the customer passed (or abandoned) the step-up."""
+        res = s.cases.get(cid)
+        if not res or res["dec"] != 1:
+            return False
+        if passed:
+            s.st.commit(res, upd=True)
+        return True
 
     def pct(s, q):
         v = sorted(s.lat)

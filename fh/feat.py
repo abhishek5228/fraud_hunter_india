@@ -142,11 +142,15 @@ class Store:
         if x.get("pers") and uid not in s.pu[x["mid"]]:
             s.pu[x["mid"]][uid] = ts   # first-time senders only: strangers paying a mule, not friends paying friends
         s.pf.add(x["mid"])
-        if not upd:
-            return
         P = s.u.get(uid)
         if P is None:
             P = s.u[uid] = Prof()
+        # Velocity counts every ATTEMPT, whatever its outcome: a bot's declined micro-charges are exactly the signal.
+        P.q.append((ts, x["amt"], 1 if (x["chan"] == "ecom" and x["amt"] < 10) else 0))
+        while P.q and ts - P.q[0][0] > 86400:
+            P.q.popleft()
+        if not upd:   # the behavioural profile (typical spend, trusted devices, home area) only learns from trusted payments
+            return
         la = math.log(x["amt"])
         P.n += 1
         d = la - P.mu
@@ -161,9 +165,6 @@ class Store:
         P.ctys.add(x["cty"])
         P.mers.add(x["mid"])
         P.cats.add(x["cat"])
-        P.q.append((ts, x["amt"], 1 if (x["chan"] == "ecom" and x["amt"] < 10) else 0))
-        while P.q and ts - P.q[0][0] > 86400:
-            P.q.popleft()
         if x["chan"] in CARD_PRESENT:  # travel-speed anchor = last *card-present* location; IP geo is too noisy (VPNs)
             P.lt, P.la, P.lo = ts, x["lat"], x["lon"]
         P.sa += x["lat"]

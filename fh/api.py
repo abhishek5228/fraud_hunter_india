@@ -9,11 +9,12 @@ from contextlib import asynccontextmanager
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import train, policy, whatif, feat
+from . import train, policy, whatif, feat, drift
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -47,7 +48,11 @@ async def life(app):
     task.cancel()
 
 
-app = FastAPI(title="Fraud Hunter", version="1.0", lifespan=life)
+app = FastAPI(title="Fraud Hunter India", version="1.1", lifespan=life)
+# A static frontend hosted elsewhere (Netlify, Vercel, GitHub Pages) can call this API. Restrict in production:
+#   FH_ORIGINS="https://my-frontend.netlify.app,https://example.com"
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get("FH_ORIGINS", "*").split(",") if o.strip()],
+                   allow_methods=["GET", "POST"], allow_headers=["content-type"])
 
 
 async def pump():
@@ -143,6 +148,19 @@ async def case(cid: str):
     if not c:
         raise HTTPException(404, "case expired or unknown")
     return dict(c, truth=S["sim"].truth.get(cid))
+
+
+class Cf(BaseModel):
+    id: str
+    passed: bool
+
+
+@app.post("/api/confirm")
+async def confirm(c: Cf):
+    """Second phase of a step-up: tell the engine whether the customer passed the challenge."""
+    if not S["eng"].confirm(c.id, c.passed):
+        raise HTTPException(404, "unknown case, or it was not a step-up")
+    return dict(ok=True)
 
 
 class Fb(BaseModel):
@@ -255,25 +273,12 @@ async def model_card():
 
 
 @app.get("/api/drift")
-async def drift():
+async def drift_ep():
     """Population stability index of recent traffic against the training distribution, per feature."""
-    eng, g, ref = S["eng"], S["g"], S["rep"]["ref"]
+    eng = S["eng"]
     if len(eng.vecs) < 600:
         return dict(n=len(eng.vecs), ready=False, feats=[])
-    X = np.array(eng.vecs)
-    out = []
-    for j, n in enumerate(g.names):
-        if n == "hrar":   # hour-rarity swings with time of day by construction; a few-hour window would always look drifted
-            continue
-        live = np.bincount(g.bins(X[:, j:j + 1].repeat(len(g.names), 1))[:, j], minlength=g.nb[j]) / len(X)
-        e, a = np.clip(np.array(ref[n]), 1e-4, None), np.clip(live, 1e-4, None)
-        raw = float(np.sum((a - e) * np.log(a / e)))
-        floor = (g.nb[j] - 1) * (1 / len(X) + 1 / S["rep"]["ref_n"])    # PSI of pure sampling noise grows with bins / sample size
-        out.append(dict(f=n, psi=max(0.0, raw - floor), raw=raw, desc=DESC.get(n, "")))
-    out.sort(key=lambda r: -r["psi"])
-    worst = out[0]["psi"]
-    return dict(n=len(X), ready=True, feats=out, worst=worst, status="major" if worst > 0.25 else "moderate" if worst > 0.1 else "stable",
-                fest=S["w"].fest)
+    return dict(drift.psi(eng.vecs, S["g"], S["rep"], DESC), fest=S["w"].fest)
 
 
 @app.get("/api/users")

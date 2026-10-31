@@ -61,7 +61,7 @@ def test_declined_attempts_stay_out_of_profile_but_in_graph():
     st = feat.Store()
     x = tx(chan="upi", dev="d9", ip="1.2.3.4", pers=True, mid="mu001@ybl")
     st.commit(x, upd=False)
-    assert "u1" not in st.u and "u1" in st.du["d9"] and "u1" in st.pu["mu001@ybl"]
+    assert st.u["u1"].n == 0 and "u1" in st.du["d9"] and "u1" in st.pu["mu001@ybl"]   # attempt recorded, nothing trusted
 
 
 def test_fan_in_counts_first_time_strangers_not_friends():
@@ -108,6 +108,14 @@ def test_vpn_on_known_device_is_only_a_step_up():
     _, raw = st.feats(v)
     hit = [h for h in rules.check(v, raw, st) if h[1] == "IMPOSSIBLE_TRAVEL"]
     assert hit and hit[0][0] == rules.STEP
+
+
+def test_velocity_counts_every_attempt_even_untrusted_ones():
+    st = feat.Store()
+    for i in range(3):
+        st.commit(tx(ts=T0 + 5 * DAY + 5 * i, amt=1.0, chan="ecom", dev="b", ip="9.9.9.9"), upd=False)   # all declined
+    _, raw = st.feats(tx(ts=T0 + 5 * DAY + 30, amt=1.0, chan="ecom", dev="b", ip="9.9.9.9"))
+    assert raw["c1"] == 3 and raw["sm5"] == 3 and raw["n"] == 0
 
 
 def test_card_testing_rule():
@@ -199,6 +207,39 @@ def test_whatif_risk_aversion_trades_fraud_for_friction():
     best = whatif.lab(h, policy.Cfg())
     assert best["cur"]["cost"] < best["best1"]["cost"] < best["allow"]["cost"]
     assert best["cur"]["cost"] <= best["best2"]["cost"] * 1.05      # amount-aware is at least as good as tuned tiers
+
+
+class _Fake:
+    """Stand-in model with a fixed logit, to test engine plumbing without training."""
+    names, b0 = feat.NAMES, -3.0
+
+    def __init__(self, logit):
+        self.logit = logit
+
+    def contrib(self, v):
+        return self.logit, [0.0] * len(v)
+
+
+def _eng(logit):
+    from fh.engine import Engine
+    return Engine(_Fake(logit), feat.Store())
+
+
+def test_step_up_is_two_phase_and_pending_payments_do_not_teach_the_device():
+    e = _eng(-2.0)                                                    # p about 12%: a challenge at this amount
+    x = tx(chan="upi", dev="bot-dev", ip="9.9.9.9", mid="mq5@ybl", amt=500.0)
+    r = e.score(x)
+    assert r["dec"] == 1
+    assert e.st.u["u1"].n == 0 and not e.st.u["u1"].devs              # pending: attempt counted, nothing trusted
+    assert e.confirm(r["id"], False) and e.st.u["u1"].n == 0          # abandoned: still nothing learned
+    assert e.confirm(r["id"], True) and "bot-dev" in e.st.u["u1"].devs  # passed: now it is the customer's device
+    assert not e.confirm("nope", True)
+
+
+def test_approved_payments_are_learned_immediately_and_declined_never():
+    ok, bad = _eng(-9.0), _eng(9.0)
+    assert ok.score(tx(chan="upi", dev="d1", mid="mq5@ybl"))["dec"] == 0 and ok.st.u["u1"].n == 1
+    assert bad.score(tx(chan="upi", dev="d1", mid="mq5@ybl", amt=900.0))["dec"] == 2 and bad.st.u["u1"].n == 0
 
 
 @pytest.fixture(scope="module")
