@@ -10,7 +10,7 @@ All data is synthetic. The numbers below show the engineering, not real-world pe
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # then open http://localhost:8000
-python -m pytest -q tests                   # 30 tests
+python -m pytest -q tests                   # 36 tests
 ```
 Or `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`.
 
@@ -36,6 +36,8 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 | **Live ops.** Simulated traffic with ground-truth KPIs, an India map, per-attack detection, and the drift monitor. Launch any attack from the top bar. Click a payment for the full explanation: a decision ruler whose zones move with the amount and rail, exact factor contributions, expected cost of each action, and what the customer sees in English or Hindi. | ![](docs/drift.png) |
 
 **Review.** The analyst queue: payments the engine challenged or declined that nobody has confirmed. Confirm fraud (optionally blocking the device, network and payee) or mark legitimate; the answer feeds the engine and the audit log.
+
+**Red team.** The engine attacks itself: an automated fraudster searches for the strategy that extracts the most rupees without being stopped, and the tab shows what it found, which levers matter, and what hardening bought and cost. See below.
 
 **Backtest.** The practical part. Upload a CSV of past payments and the engine replays it in an isolated copy, then reports what it would have caught, who it would have bothered, why, and the rupees saved. `python -m fh.backtest file.csv --out decisions.csv` does the same from the command line.
 
@@ -66,6 +68,33 @@ One frontend, three ways to host it. [DEPLOY.md](DEPLOY.md) has the details, the
 | Static demo of real recorded decisions | `python tools/build_site.py --demo` | None |
 
 `render.yaml` is a one-click Render blueprint. The demo build also produces a single 3 MB HTML file that runs from disk.
+
+## Red team: the engine attacks itself
+
+Most fraud demos show a model catching fraud someone wrote for it. This one also attacks itself. An evolutionary search over twelve levers a fraudster controls (rail, number of payments, total, whether to split just under a limit, who is paid, device, network, screen-share, SIM swap, hour, spacing, whether the customer is tricked into approving a challenge) tries hundreds of strategies against sandboxed copies of real customers' histories. The production engine decides every payment, and the search keeps whatever extracts the most rupees.
+
+![Red team](docs/redteam.png)
+
+**What it found in the shipped model.** Eight IMPS payments, each just under the Rs 50,000 limit, to a gift-card merchant, from the customer's own phone on their usual network, 20 seconds apart, with the customer completing the OTP: about **Rs 2.6 lakh per customer**, and almost never caught. The lever chart explains it: splitting just under the limit averages Rs 1.58 lakh per attack, equal parts Rs 5,900. Two causes: the model had learned that large payments to *known* payees are legitimate (they were rent), and the structuring rule only covered person payees, so a merchant slipped past, leaving a step-up that a tricked customer approves.
+
+**Hardening.** Train on what the search found, attack the new model with fresh searches, repeat. Each round is attacked by three independent searches, because one search is noisy: three searches against the same shipped model found Rs 2.5, 2.6 and 3.2 lakh.
+
+| Round | Attacker's median haul per customer | Range over 3 searches | Accuracy (AP) | Fraud caught | Good customers touched |
+|---|---|---|---|---|---|
+| 0 (shipped) | Rs 2.56 lakh | 2.48 to 3.17 lakh | 0.960 | 98.6% | 2.7% |
+| 1 | **Rs 35,400** | 32,300 to 1.20 lakh | 0.960 | 99.0% | 3.1% |
+| 2 | Rs 28,400 | 27,800 to 32,500 | 0.943 | 99.0% | 4.6% |
+| 3 | Rs 47,500 | 15,000 to 1.22 lakh | 0.932 | 97.7% | 4.8% |
+
+Round 1 is the best trade: the median haul falls 86% for 0.4 points more friction and no loss of accuracy. After that, nothing improves reliably: round 3 is worse than round 2, friction rises to 4.8% and accuracy falls. And the best of three searches against round 1 still found Rs 1.2 lakh, so the hole is **narrowed, not closed**. The shipped model stays at round 0 because every other number in this README was measured on it; run the hardened one with `FH_ART=artifacts_hard`.
+
+**What this does not prove.** The attacker is a search over a fixed menu, not a creative human, and the largest total it can try is 60 times a customer's usual ticket, so the remaining Rs 35,000 is partly a ceiling of the menu. It attacks a simulator, assumes a challenge lets through 8% of ordinary fraud and 50% of fraud the customer is tricked into, and plays against rules I also wrote. A clean result means *these* holes are closed.
+
+```
+python -m fh.redteam                 # attack the shipped model (about 10 seconds)
+python -m fh.redteam --harden 3      # attack, train on what worked, attack again (about 6 minutes)
+```
+Also `POST /api/redteam/run` and the Red team tab. Customers are copied into a sandbox for each attack, so nothing live changes.
 
 ## Making it practical
 

@@ -90,6 +90,7 @@ Only an approved payment, or a challenged one confirmed as passed, updates the c
 | `FH_API_KEY` | unset (open) | If set, integration endpoints need an `X-API-Key` header. Health stays open. |
 | `FH_ORIGINS` | `*` | Comma-separated origins allowed to call the API from a browser. Lock it to your frontend. |
 | `FH_AUDIT_DB` | `artifacts/audit.db` | Where the audit log lives. Point it at a persistent disk. |
+| `FH_ART` | `artifacts/` | Directory of the trained model. Point at `artifacts_hard` to run the red-team-hardened model. |
 | `FH_STATE` | `1` | Set `0` to stop saving and restoring the feature store snapshot. |
 | `PORT` | `8000` | The container honours it. |
 

@@ -16,6 +16,7 @@
     <button role="tab" data-tab="live" aria-selected="true">Live ops</button>
     <button role="tab" data-tab="review" aria-selected="false">Review</button>
     <button role="tab" data-tab="backtest" aria-selected="false">Backtest</button>
+    <button role="tab" data-tab="redteam" aria-selected="false">Red team</button>
     <button role="tab" data-tab="lab" aria-selected="false">Policy lab</button>
     <button role="tab" data-tab="play" aria-selected="false">Playground</button>
     <button role="tab" data-tab="model" aria-selected="false">Model card</button>
@@ -94,6 +95,22 @@
       </div></div>
     </div>
     <div class="col" id="bt-out"><div class="card"><div class="empty">Run the sample to see the report.</div></div></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-redteam">
+  <div class="lab" style="grid-template-columns:380px 1fr">
+    <div class="col">
+      <div class="card"><h3>The engine attacks itself</h3><div class="body">
+        <p class="note" style="margin-top:0;line-height:1.6">An automated fraudster tries thousands of strategies against copies of real customers' history: how many payments, how much, to whom, from which device and network, at what hour, whether the customer is tricked into approving a challenge. The production engine decides every payment. Whatever slips through is the engine's blind spot.</p>
+        <div class="act" style="padding:10px 0 0"><button class="btn pri" id="rt-run">Run the red team</button></div>
+        <div class="note" id="rt-status" style="margin-top:8px" role="status"></div>
+      </div></div>
+      <div class="card"><h3>What this does not prove</h3><div class="body note" style="line-height:1.6">
+        The attacker only has the levers listed in the table: a fixed menu, not a creative human. It attacks a simulator, and counts a challenge as letting through 8% of ordinary fraud and 50% of fraud the customer is tricked into. A clean result means <i>these</i> holes are closed, not that none remain.
+      </div></div>
+    </div>
+    <div class="col" id="rt-out"><div class="card"><div class="empty">Run it to see what the attacker finds.</div></div></div>
   </div>
 </section>
 
