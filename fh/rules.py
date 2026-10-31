@@ -50,6 +50,12 @@ def check(x, r, st):
     P = st.u.get(x["uid"])
     if (P is None or P.n < 4) and x["amt"] >= 100_000:       # the model never saw big money from a stranger; do not let it extrapolate to "safe"
         hits.append((STEP, "NEW_CUSTOMER_HIGH_VALUE", "%s from a customer with almost no history" % inr(x["amt"], 0)))
+    cons = getattr(st, "cons", None)
+    if cons and pers:                                    # a payee another member bank has strong evidence against (matched by keyed hash only)
+        from . import consortium
+        z = cons.get(consortium.tag(x["mid"]))
+        if z:
+            hits.append((BLOCK if z["n"] >= 2 else STEP, "CONSORTIUM_MULE", "Payee flagged by another bank in the sharing network (%d report(s); no customer data shared)" % z["n"]))
     for k in ("u:" + x["uid"], "d:" + str(x["dev"]), "i:" + str(ip24(x["ip"]))):
         if k in st.blk:
             hits.append((BLOCK, "BLOCKLIST", "Manually blocked entity %s" % k))

@@ -105,6 +105,12 @@ data = dict(
     meta=dict(cities=[c[0] for c in api.CITY], nin=api.NIN, cats=sorted(api.CATS), kinds=TYPS, cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY, fest=1.0),
     cfg=policy.Cfg().dict(), start=T0 + train.DAYS * DAY,
 )
+import copy                                                # noqa: E402
+from fh import graph as _graph, copilot as _cop, fairness as _fair, shield as _sh   # noqa: E402
+data["graph"] = _graph.build(eng.st, sim.clk)
+data["fairness"] = _fair.run(g, copy.deepcopy(eng.st), w, policy.Cfg(), sim.clk)
+data["briefs"] = {i: _cop.brief(c) for i, c in cases.items() if c["dec"] >= 1}
+data["shield_rules"] = _sh._R
 os.makedirs(os.path.join(ROOT, "dist"), exist_ok=True)
 out = os.path.join(ROOT, "dist", "demo-data.json")
 json.dump(data, open(out, "w"), separators=(",", ":"), default=float)

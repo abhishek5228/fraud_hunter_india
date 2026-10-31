@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
+from . import shield, graph as mulegraph, copilot, fairness, consortium, integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -557,3 +557,93 @@ async def loadtest(n: int = 3000):
                     max_us=round(lat[-1]), mean_us=round(statistics.fmean(lat)),
                     note="single Python process, engine only (features + model + rules + policy). Network and JSON add more; tools/loadtest.py measures HTTP end to end.")
     return await run_in_threadpool(run)
+
+
+# ---------------------------------------------------------------- scam shield, mule graph, copilot, fairness, consortium
+RATE = {}
+
+
+def _limit(req, per_min=40):
+    ip = (req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "?"))
+    q, now = RATE.setdefault(ip, []), time.time()
+    q[:] = [t for t in q if now - t < 60]
+    if len(q) >= per_min:
+        raise HTTPException(429, "too many checks; try again in a minute")
+    q.append(now)
+    if len(RATE) > 5000:
+        RATE.clear()
+
+
+class Sh(BaseModel):
+    text: str
+
+
+@app.get("/api/shield/rules")
+async def shield_rules():
+    return shield._R
+
+
+@app.post("/api/shield")
+async def shield_ep(b: Sh, req: Request):
+    """Public on purpose: it only reads the text it is given and returns a verdict. Rate limited per IP."""
+    _limit(req)
+    if not b.text.strip() or len(b.text) > 4000:
+        raise HTTPException(422, "send between 1 and 4000 characters")
+    st, now = S["eng"].st, S["sim"].clk
+    net = None
+    for h in shield.handles(shield.expand(b.text))[:3]:
+        fan = sum(1 for t in st.pu.get(h, {}).values() if 0 <= now - t <= 7 * 86400)
+        bad = st.nbad("m:" + h, now)
+        if fan or bad:
+            net = dict(fan_in=max(fan, (net or {}).get("fan_in", 0)), complaints=max(bad, (net or {}).get("complaints", 0)))
+    return dict(shield.check(b.text, net), network=net)
+
+
+@app.get("/api/graph")
+async def graph_ep(top: int = 10):
+    return mulegraph.build(S["eng"].st, S["sim"].clk, top=max(1, min(top, 30)))
+
+
+@app.get("/api/case/{cid}/brief", dependencies=[Depends(guard)])
+async def brief_ep(cid: str, llm: bool = False):
+    c = S["eng"].cases.get(cid)
+    if not c:
+        raise HTTPException(404, "case expired or unknown")
+    b = await run_in_threadpool(copilot.brief, c, llm)
+    S["aud"].log("brief", cid, c["uid"], c["amt"], c["chan"], c["dname"], c["p"], model=S["ver"], detail=dict(source=b["source"]))
+    return b
+
+
+@app.get("/api/fairness")
+async def fairness_ep(refresh: bool = False):
+    f = S.get("fair")
+    if f is None or refresh or f["ver"] != S["ver"]:
+        import copy
+        st = copy.deepcopy(S["eng"].st)           # copy on the event loop so it is consistent; the replay runs off-loop
+        r = await run_in_threadpool(fairness.run, S["g"], st, S["w"], S["eng"].cfg, S["sim"].clk)
+        f = S["fair"] = dict(r, ver=S["ver"])
+    return f
+
+
+@app.get("/api/consortium")
+async def consortium_status():
+    st = S["eng"].st
+    return dict(on=bool(consortium.key()), imported=len(getattr(st, "cons", {})), banks=sorted({v["bank"] for v in getattr(st, "cons", {}).values()}))
+
+
+@app.post("/api/consortium/export", dependencies=[Depends(guard)])
+async def consortium_export(bank: str = "this-bank"):
+    try:
+        return consortium.export(S["eng"].st, S["sim"].clk, bank[:40])
+    except ValueError as e:
+        raise HTTPException(503, str(e))
+
+
+@app.post("/api/consortium/import", dependencies=[Depends(guard)])
+async def consortium_import(req: Request):
+    try:
+        new = consortium.ingest(S["eng"].st, await req.json(), now=None)
+    except ValueError as e:
+        raise HTTPException(422 if consortium.key() else 503, str(e))
+    S["aud"].log("consortium_import", detail=dict(new=new), model=S["ver"])
+    return dict(ok=True, new=new, total=len(S["eng"].st.cons))

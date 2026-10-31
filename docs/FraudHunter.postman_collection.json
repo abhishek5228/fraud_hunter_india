@@ -1,0 +1,1009 @@
+{
+ "info": {
+  "name": "Fraud Hunter India API",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "item": [
+  {
+   "name": "GET /",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/",
+     "host": [
+      "{{base}}"
+     ],
+     "path": []
+    }
+   }
+  },
+  {
+   "name": "POST /api/alerts/test",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/alerts/test",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "alerts",
+      "test"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/attack",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/attack",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "attack"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/audit",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/audit",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "audit"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/backtest",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/backtest",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "backtest"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/backtest/sample",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/backtest/sample",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "backtest",
+      "sample"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/backtest/{bid}/csv",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/backtest/{bid}/csv",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "backtest",
+      "{bid}",
+      "csv"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/case/{cid}",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/case/{cid}",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "case",
+      "{cid}"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/case/{cid}/brief",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/case/{cid}/brief",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "case",
+      "{cid}",
+      "brief"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/confirm",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/confirm",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "confirm"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"id\": \"t0000001\",\n  \"passed\": true\n}"
+    }
+   }
+  },
+  {
+   "name": "GET /api/consortium",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/consortium",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "consortium"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/consortium/export",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/consortium/export",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "consortium",
+      "export"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/consortium/import",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/consortium/import",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "consortium",
+      "import"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/drift",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/drift",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "drift"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/fairness",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/fairness",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "fairness"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/feedback",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/feedback",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "feedback"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"id\": \"t0000001\",\n  \"verdict\": \"fraud\",\n  \"block\": false\n}"
+    }
+   }
+  },
+  {
+   "name": "GET /api/graph",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/graph",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "graph"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/health",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/health",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "health"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/integrations",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/integrations",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "integrations"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/loadtest",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/loadtest",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "loadtest"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/meta",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/meta",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "meta"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/model",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/model",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "model"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/policy",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/policy",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "policy"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/policy",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/policy",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "policy"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/policy/lab",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/policy/lab",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "policy",
+      "lab"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/queue",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/queue",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "queue"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/redteam/rounds",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/redteam/rounds",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "redteam",
+      "rounds"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/redteam/run",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/redteam/run",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "redteam",
+      "run"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/score",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/score",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "score"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"uid\": \"u0042\",\n  \"mid\": \"shop@upi\",\n  \"amt\": 2500,\n  \"chan\": \"upi\",\n  \"cat\": \"digital\",\n  \"city\": \"Mumbai\",\n  \"commit\": false\n}"
+    }
+   }
+  },
+  {
+   "name": "POST /api/shield",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/shield",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "shield"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\n  \"text\": \"Your electricity will be cut tonight, call 9876543210 immediately\"\n}"
+    }
+   }
+  },
+  {
+   "name": "GET /api/shield/rules",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/shield/rules",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "shield",
+      "rules"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/sim",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/sim",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "sim"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/stream",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/stream",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "stream"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/users",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/users",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "users"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/webhook/razorpay",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/webhook/razorpay",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "webhook",
+      "razorpay"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/webhook/razorpay/replay",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/webhook/razorpay/replay",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "webhook",
+      "razorpay",
+      "replay"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/wire",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/wire",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "wire"
+     ]
+    }
+   }
+  }
+ ],
+ "variable": [
+  {
+   "key": "base",
+   "value": "https://fraud-hunter-api.onrender.com"
+  },
+  {
+   "key": "api_key",
+   "value": ""
+  }
+ ]
+}

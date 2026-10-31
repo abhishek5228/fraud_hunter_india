@@ -29,6 +29,17 @@ Indian payments fraud is dominated by things a card-centric engine barely sees. 
 | Festival peaks change what "normal" looks like | PSI drift monitor; a Festival-surge switch in the UI to see it fire | `/api/drift` |
 | Customers read Hindi or English | Bilingual customer message with the scam-safe advice (never share PIN or OTP, call 1930) | `explain.py` |
 
+## Beyond the engine: six practical extras
+
+| Extra | Where | What it is, and what it is not |
+|---|---|---|
+| **Scam Shield** | tab, `POST /api/shield` | Paste a message, UPI handle or `upi://` QR; get a verdict in English and Hindi with what to do (1930, cybercrime.gov.in). 16 rules in `fh/shield_rules.json`, shared word-for-word with the browser so the static demo agrees with the server. On a live server it also asks the engine about the payee. It reads wording and structure; it cannot tell who owns a handle, so it never says "safe". |
+| **Mule graph** | tab, `GET /api/graph` | Payees many customers paid for the first time this week, with devices tying senders together. A lead for an analyst, not proof; names are masked. |
+| **Analyst copilot** | Review tab, `GET /api/case/{id}/brief` | A brief (English, Hindi) and a suspicious-transaction-report **draft** from the engine's facts. Template by default; with `ANTHROPIC_API_KEY` an LLM may reword it from the structured facts only, and its output is rejected if it adds a number. Not the FIU-IND FINnet format. |
+| **Fairness report** | Model card, `GET /api/fairness` | Which groups of legitimate customers get challenged most (city, travellers, rail, ticket size, history), with 99% intervals. The simulator has no age or gender, and a real system must not use them as inputs; a real audit joins them in afterwards. In the simulator it finds IMPS and mid-size tickets bear the most friction. |
+| **SDKs** | `sdk/python`, `sdk/js`, `docs/openapi.json`, `docs/FraudHunter.postman_collection.json` | Zero-dependency Python and JS clients; committed scores are never auto-retried. |
+| **Cross-bank mule sharing** | Mule graph tab, `/api/consortium/*` | Banks swap keyed hashes (HMAC) of payees they have evidence against, never customers. Needs `FH_CONSORTIUM_KEY`. Honest limit: phone numbers and handles have low entropy, so anyone holding the key can test guesses; production needs private set intersection or a registry with legal agreements. |
+
 ## Real-time integrations (Live wire tab)
 
 Everything is OFF until its environment variable is set (see `.env.example`); none can block scoring.

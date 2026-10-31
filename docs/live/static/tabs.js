@@ -34,8 +34,68 @@ function tabbing() {
     $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $$(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
     if (b.dataset.tab === "lab") lab(); if (b.dataset.tab === "model") model(); if (b.dataset.tab === "play") play();
-    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab(); if (b.dataset.tab === "wire") wireTab();
+    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab(); if (b.dataset.tab === "wire") wireTab(); if (b.dataset.tab === "shield") shieldTab(); if (b.dataset.tab === "mules") mulesTab();
   }));
+}
+
+/* ------------------------------------------------------------ mule graph + consortium */
+let muSel = null, muT = null, muData = null;
+async function mulesTab() {
+  if (!muT) muT = setInterval(() => { if ($("#tab-mules").classList.contains("on")) loadMules(); }, 6000);
+  loadMules(); consCard();
+}
+async function loadMules() {
+  try { muData = await api("/api/graph"); } catch (e) { $("#mu-list").replaceChildren(el("div", { class: "empty" }, e.message)); return; }
+  const cl = muData.clusters;
+  $("#mu-count").textContent = muData.total + " found";
+  if (!cl.length) { $("#mu-list").replaceChildren(el("div", { class: "empty" }, "No payee has 3 or more first-time senders this week. Launch a 'UPI payee scam' on Live ops.")); $("#mu-svg").replaceChildren(); return; }
+  if (!cl.find(c => c.id === muSel)) muSel = cl[0].id;
+  $("#mu-list").replaceChildren(...cl.map(c => el("div", { class: "hub" + (c.id === muSel ? " sel" : ""), tabindex: 0, role: "button", onclick: () => { muSel = c.id; loadMules(); }, onkeydown: e => { if (e.key === "Enter") { muSel = c.id; loadMules(); } } },
+    el("b", { class: "mono" }, c.payee), el("span", { class: "tag " + (c.level === "high" ? "d2" : "d1") }, c.level === "high" ? "High" : "Watch"),
+    el("div", { class: "sub" }, c.senders + " senders this week · " + c.complaints + " complaint(s)" + (c.devices.length ? " · " + c.devices.length + " shared device(s)" : "")))));
+  drawHub(cl.find(c => c.id === muSel));
+}
+function drawHub(c) {
+  const W = 640, H = 420, cx = W / 2, cy = H / 2, R = 160, ns = "http://www.w3.org/2000/svg", N = c.nodes.length;
+  const svg = document.createElementNS(ns, "svg"); svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Payee " + c.payee + " receives money from " + c.senders + " customers");
+  const add = (t, a, txt) => { const e = document.createElementNS(ns, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
+  const pos = {}; c.nodes.forEach((n, i) => { const a = -Math.PI / 2 + 2 * Math.PI * i / N; pos[n.id] = [cx + R * Math.cos(a), cy + R * 0.85 * Math.sin(a)]; });
+  c.devices.forEach((d, k) => { const ids = d.senders.filter(x => pos[x]); for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++)
+    add("line", { x1: pos[ids[i]][0], y1: pos[ids[i]][1], x2: pos[ids[j]][0], y2: pos[ids[j]][1], stroke: "#cc2f46", "stroke-width": 1.6, "stroke-dasharray": "4 3" }); });
+  c.nodes.forEach(n => add("line", { x1: pos[n.id][0], y1: pos[n.id][1], x2: cx, y2: cy, stroke: n.first ? "#e0a21a" : "#9fb0c9", "stroke-width": n.first ? 2 : 1 }));
+  c.nodes.forEach(n => { const [x, y] = pos[n.id]; add("circle", { cx: x, cy: y, r: 11, fill: n.first ? "#fff4d6" : "#eef3f9", stroke: n.first ? "#e0a21a" : "#9fb0c9", "stroke-width": 1.5 }); add("text", { x, y: y + 24, "text-anchor": "middle", "font-size": 10.5, fill: "#5b6b82" }, n.id); });
+  add("circle", { cx, cy, r: 30, fill: "#cc2f46" }); add("text", { x: cx, y: cy + 4, "text-anchor": "middle", fill: "#fff", "font-size": 11, "font-weight": 700 }, "payee");
+  add("text", { x: cx, y: cy + 50, "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#1b2638" }, c.payee);
+  $("#mu-svg").replaceChildren(svg);
+  $("#mu-title").textContent = "Who paid " + c.payee;
+  $("#mu-why").replaceChildren(el("div", null, el("b", null, "Why it is flagged: "), c.why.join(" · ")), el("div", { class: "note" }, "Amber lines: that sender had never paid this payee before. Red dashed lines: two senders share a device."),
+    el("div", { class: "note" }, "Payee names are masked. A hub is a lead for an analyst, not proof: a charity, a landlord or a popular seller can also look like this."));
+}
+async function consCard() {
+  const host = $("#mu-cons"); let st;
+  try { st = await api("/api/consortium"); } catch (e) { host.replaceChildren(el("div", { class: "note" }, "Needs the live backend.")); return; }
+  const msg = el("div", { class: "note", role: "status", style: "margin-top:6px" }), ta = el("textarea", { rows: 3, style: "width:100%;border:1px solid var(--line);border-radius:8px;padding:6px;font:11px var(--mono)", placeholder: "Paste a feed from another bank" });
+  host.replaceChildren(
+    el("div", { class: "note", style: "line-height:1.55" }, "Banks swap keyed hashes of payees they have evidence against, never customers, amounts or names. A payee another bank has flagged is stopped here before any customer has lost money. Needs a shared key (FH_CONSORTIUM_KEY)."),
+    el("div", { class: "note", style: "margin:6px 0" }, st.on ? "Key set. " + st.imported + " hash(es) imported from " + (st.banks.join(", ") || "no one yet") + "." : "Off: set FH_CONSORTIUM_KEY on the server."),
+    el("button", { class: "btn sm", disabled: !st.on, onclick: async () => { try { const f = await api("/api/consortium/export?bank=this-bank", {}); const a = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(f, null, 1)], { type: "application/json" })), download: "mule-feed.json" }); a.click(); msg.textContent = "Exported " + f.items.length + " hash(es)."; } catch (e) { msg.textContent = e.message; } } }, "Export my feed"),
+    ta, el("button", { class: "btn sm", style: "margin-top:6px", disabled: !st.on, onclick: async () => { try { const r = await api("/api/consortium/import", JSON.parse(ta.value)); msg.textContent = "Imported " + r.new + " new hash(es); " + r.total + " in total."; consCard(); } catch (e) { msg.textContent = e.message; } } }, "Import a feed"), msg);
+}
+
+/* ------------------------------------------------------------ fairness (Model card) */
+async function fairCard(out) {
+  const host = el("div", { class: "card" }, el("h3", null, "Who bears the friction?", el("span", { class: "note sp" }, "legitimate customers challenged or declined, by group")), el("div", { class: "body" }, el("div", { class: "empty" }, "Replaying three days of traffic…")));
+  out.append(host);
+  let f; try { f = await api("/api/fairness"); } catch (e) { host.lastChild.replaceChildren(el("div", { class: "empty" }, e.message)); return; }
+  const mx = Math.max(...f.segments.map(s => s.hi || 0), 0.05);
+  const rows = f.segments.map(s => el("tr", { class: s.small ? "mut" : "" }, el("td", null, s.group), el("td", null, s.seg, s.flag ? el("span", { class: "tag d2", style: "margin-left:6px" }, "higher") : null),
+    el("td", { class: "r" }, s.n.toLocaleString("en-IN")),
+    el("td", { style: "min-width:200px" }, s.touched == null ? "–" : el("div", { style: "display:flex;gap:8px;align-items:center" }, el("div", { class: "hb", style: "flex:1;position:relative" }, el("i", { style: `width:${100 * s.touched / mx}%;background:${s.flag ? "#cc2f46" : "#2b47ff"}` })), el("span", { class: "mono" }, pct(s.touched, 1) + " (" + pct(s.lo, 1) + "–" + pct(s.hi, 1) + ")"))),
+    el("td", { class: "r" }, s.ratio == null ? "–" : s.ratio.toFixed(2) + "×"), el("td", { class: "r" }, s.caught == null ? "–" : pct(s.caught, 0))));
+  host.lastChild.replaceChildren(el("div", { class: "note", style: "margin-bottom:8px;line-height:1.55" }, "Average: " + pct(f.base, 1) + " of " + f.legit_n.toLocaleString("en-IN") + " legitimate payments were challenged or declined. " + (f.flagged.length ? f.flagged.length + " group(s) are flagged (at least 1.5× average, 99% interval clear of average)." : "No group is flagged.") + " " + f.note),
+    el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Group"), el("th", null, "Segment"), el("th", { class: "r" }, "Legit payments"), el("th", null, "Challenged or declined (95% interval)"), el("th", { class: "r" }, "vs average"), el("th", { class: "r" }, "Fraud caught"))), el("tbody", null, rows)),
+    el("div", { class: "note", style: "margin-top:8px" }, "Greyed rows have too few payments to judge. The simulator has no age, gender or religion, and a real system must not use them as inputs; auditing for them needs those fields joined in afterwards, with a lawful basis."));
 }
 
 /* ------------------------------------------------------------ live wire */
@@ -417,6 +477,7 @@ async function model() {
   xyChart(cc, { title: "calibration", xlog: true, ylog: true, xr: [0.001, 1], yr: [0.001, 1], xt: [0.001, 0.01, 0.1, 1], yt: [0.001, 0.01, 0.1, 1], xf: v => pct(v, v < .01 ? 1 : 0), yf: v => pct(v, v < .01 ? 1 : 0), xl: "Predicted probability", yl: "Observed fraud rate", diag: true,
     lines: [{ name: "Score buckets", color: "#2b47ff", pts: r.calib.filter(b => b.obs > 0).map(b => [b.pred, b.obs, b.n]), dots: true, r: 4 }],
     tip: p => [{ v: pct(p[0], 2), l: "predicted" }, { v: pct(p[1], 2), l: "observed" }, { v: p[2], l: "transactions" }] });
+  fairCard(out);
 }
 function shapeBox(s) {
   const W = 160, H = 54, v = s.v, n = v.length, mx = Math.max(0.3, ...v.map(Math.abs));

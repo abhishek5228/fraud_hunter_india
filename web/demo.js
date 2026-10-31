@@ -138,6 +138,11 @@
     if (path === "/api/backtest/sample") return D.backtest;
     if (path === "/api/backtest") return { __err: 422, detail: "Uploading your own file needs the live backend. The sample report was recorded from the real engine." };
     if (path === "/api/audit") return { total: 0, rows: [] };
+    if (path === "/api/shield/rules") return D.shield_rules;
+    if (path === "/api/graph") return D.graph;
+    if (path === "/api/fairness") return D.fairness;
+    if (path === "/api/consortium") return { on: false, imported: 0, banks: [] };
+    if (/^\/api\/case\/[^/]+\/brief/.test(path)) { const b = D.briefs[path.split("/")[3]]; return b || { __err: 404, detail: "No brief was recorded for this case in the demo" }; }
     if (path === "/api/integrations") return { razorpay: { on: false, ok: 0, bad_sig: 0, ignored: 0 }, ipinfo: { on: false, cached: 0, errors: 0 }, alerts: { channels: [], sent: 0, dropped: 0, failed: 0 }, auth: false };
     if (path === "/api/wire") return { events: [] };
     if (path.startsWith("/api/webhook") || path === "/api/alerts/test" || path.startsWith("/api/loadtest")) return { __err: 422, detail: "Demo mode: this needs the live backend. Nothing here is simulated." };

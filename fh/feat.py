@@ -49,6 +49,7 @@ class Store:
         s.pf = set()               # every payee ever seen on the platform
         s.bad = defaultdict(deque)  # 'd:dev' / 'i:ip' / 'm:payee' -> report times (7-day window, avoids drift)
         s.blk = set()              # manual blocklist keys: 'u:' 'd:' 'i:'
+        s.cons = {}                # consortium: keyed hash of a payee another bank flagged -> {bank, n, ts}
 
     # ---------------------------------------------------------------- features
     def feats(s, x):

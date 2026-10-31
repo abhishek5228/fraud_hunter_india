@@ -17,6 +17,8 @@
     <button role="tab" data-tab="review" aria-selected="false">Review</button>
     <button role="tab" data-tab="backtest" aria-selected="false">Backtest</button>
     <button role="tab" data-tab="redteam" aria-selected="false">Red team</button>
+    <button role="tab" data-tab="shield" aria-selected="false">Scam Shield</button>
+    <button role="tab" data-tab="mules" aria-selected="false">Mule graph</button>
     <button role="tab" data-tab="wire" aria-selected="false">Live wire</button>
     <button role="tab" data-tab="lab" aria-selected="false">Policy lab</button>
     <button role="tab" data-tab="play" aria-selected="false">Playground</button>
@@ -115,6 +117,31 @@
   </div>
 </section>
 
+<section class="tab" id="tab-shield">
+  <div class="lab" style="grid-template-columns:480px 1fr">
+    <div class="col">
+      <div class="card"><h3>Check before you pay</h3><div class="body">
+        <div class="note" style="margin-bottom:8px">Paste a message, a UPI handle, a QR link (upi://pay?...) or a web link. Nothing leaves your browser in the demo; on the live server the text is checked and not stored.</div>
+        <textarea id="sh-text" rows="6" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit" placeholder="e.g. Your electricity connection will be disconnected tonight. Call 9876543210 immediately"></textarea>
+        <div class="chips" id="sh-samples" style="padding:8px 0"></div>
+        <button class="btn pri" id="sh-go">Check</button>
+      </div></div>
+      <div class="card"><h3>What this can and cannot do</h3><div class="body note" style="line-height:1.6">It reads wording and structure against known Indian scam patterns (OTP and PIN requests, screen-sharing apps, electricity-bill threats, fake KYC, 'digital arrest', look-alike payment handles, bad links). On the live server it also asks the risk engine whether the payee has many first-time senders or fraud complaints. It <b>cannot</b> tell who owns a payment handle, so it never says "safe".</div></div>
+    </div>
+    <div class="col" id="sh-out"><div class="card"><div class="empty">Pick an example or paste something, then press Check.</div></div></div>
+  </div>
+</section>
+<section class="tab" id="tab-mules">
+  <div class="lab" style="grid-template-columns:360px 1fr">
+    <div class="col">
+      <div class="card"><h3>Suspected mule hubs <span class="note sp" id="mu-count"></span></h3><div class="body" id="mu-list"><div class="empty">Loading…</div></div></div>
+      <div class="card"><h3>Share with other banks</h3><div class="body" id="mu-cons"></div></div>
+    </div>
+    <div class="col">
+      <div class="card"><h3 id="mu-title">Network</h3><div class="body"><div id="mu-svg"></div><div id="mu-why" class="note" style="margin-top:8px;line-height:1.6"></div></div></div>
+    </div>
+  </div>
+</section>
 <section class="tab" id="tab-wire">
   <div class="lab" style="grid-template-columns:420px 1fr">
     <div class="col">
@@ -177,6 +204,7 @@
 <script src="static/config.js"></script>
 <script src="static/lib.js"></script>
 <script src="static/live.js"></script>
+<script src="static/shield.js"></script>
 <script src="static/tabs.js"></script>
 </body>
 </html>

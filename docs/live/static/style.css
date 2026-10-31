@@ -176,3 +176,14 @@ canvas#map{width:100%;height:210px;display:block;border-radius:0 0 10px 10px}
 @media (max-width:1780px){.ctl label{font-size:0}.ctl label input{font-size:13px}.top{gap:10px}}
 @media (max-width:1500px){.ctl input[type=range]{width:60px}.tabs button{padding:8px 10px}.brand div{font-size:14px}}
 .top{flex-wrap:nowrap;overflow:hidden}
+
+/* scam shield + mule graph */
+.verdict{border-radius:10px;padding:14px 16px;border:1px solid var(--line)}
+.verdict.danger{background:#fdecef;border-color:#efc2ca}.verdict.caution{background:#fff6e0;border-color:#f0d9a0}.verdict.none{background:#eef3f9}
+.verdict .big{font-size:20px;font-weight:800;letter-spacing:-.2px}.verdict.danger .big{color:var(--bad)}.verdict.caution .big{color:#9a6a00}
+.rsn{padding:9px 0;border-bottom:1px solid var(--line)}.rsn:last-child{border:0}.rsn .seen{font-family:var(--mono);font-size:12px;color:var(--mut)}
+.acts li{margin:4px 0}.hub{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px}
+.hub:hover,.hub.sel{background:#eef3ff}.hub .sub{grid-column:1/3;color:var(--mut);font-size:12px}
+textarea:focus-visible{outline:2px solid var(--acc)}
+.brief pre{white-space:pre-wrap;font:12.5px/1.55 var(--sans);background:#f6f8fb;border:1px solid var(--line);border-radius:8px;padding:10px;margin:6px 0}
+@media (max-width:1700px){.tabs button{padding:8px 9px;font-size:12.5px}.ctl{gap:8px}.ctl input[type=range]{width:48px}}

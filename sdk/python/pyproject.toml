@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fraudhunter"
+version = "1.0.0"
+description = "Zero-dependency client for the Fraud Hunter India risk engine"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+readme = "README.md"
+
+[tool.setuptools]
+packages = ["fraudhunter"]

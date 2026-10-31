@@ -187,7 +187,20 @@ function renderCase(host, c, cfg, o = {}) {
       ev.target.disabled = true;
       try { await api("/api/feedback", { id: c.id, verdict, block }); ev.target.textContent = "Recorded"; o.onDone && o.onDone(); } catch (e) { ev.target.textContent = "Case expired"; }
     };
-    host.append(el("div", { class: "act" }, el("button", { class: "btn bad", onclick: fb("fraud", false) }, "Confirm fraud"),
+    const brief = el("div", { class: "brief" });
+    const draft = async ev => {
+      ev.target.disabled = true; ev.target.textContent = "Drafting…";
+      try {
+        const b = await api("/api/case/" + c.id + "/brief"); let k = "en";
+        const box = el("pre"), set = x => { k = x; box.textContent = b[x]; box.lang = x === "hi" ? "hi" : "en"; };
+        const tab = (l, x) => el("button", { class: "chip", onclick: () => set(x) }, l);
+        brief.replaceChildren(el("h4", null, "Analyst brief ", el("span", null, "written from the engine's facts · source: " + b.source)), el("div", { class: "chips", style: "padding:0 0 4px" }, tab("English", "en"), tab("हिन्दी", "hi"), tab("STR draft", "str"),
+          el("button", { class: "chip", onclick: () => navigator.clipboard && navigator.clipboard.writeText(box.textContent) }, "Copy")), box);
+        set("en"); ev.target.textContent = "Brief ready";
+      } catch (e) { ev.target.disabled = false; ev.target.textContent = "Draft analyst brief"; brief.replaceChildren(el("div", { class: "note" }, e.message)); }
+    };
+    host.append(brief);
+    host.append(el("div", { class: "act" }, el("button", { class: "btn", onclick: draft }, "Draft analyst brief"), el("button", { class: "btn bad", onclick: fb("fraud", false) }, "Confirm fraud"),
       el("button", { class: "btn bad", onclick: fb("fraud", true) }, "Confirm fraud and block device, network and payee"), el("button", { class: "btn", onclick: fb("legit", false) }, "Mark legitimate")));
   } else host.append(el("div", { style: "height:14px" }));
 }
