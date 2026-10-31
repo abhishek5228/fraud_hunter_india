@@ -6,3 +6,4 @@ artifacts/
 .DS_Store
 dist/
 samples/
+artifacts_hard/

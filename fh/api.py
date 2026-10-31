@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import train, policy, whatif, feat, drift, backtest, audit, persist, sample
+from . import train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -384,6 +384,44 @@ async def backtest_sample():
     sm["problems"], sm["model"], sm["id"], sm["sample"] = [], S["ver"], "sample", True
     S["bt"]["sample"] = backtest.to_csv(out)
     return sm
+
+
+class Rt(BaseModel):
+    seed: int = 1
+    gens: int = 10
+    pop: int = 36
+    victims: int = 14
+
+
+RT = dict(lock=None, last=0.0, rounds=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "redteam.json"))
+
+
+@app.post("/api/redteam/run", dependencies=[Depends(guard)])
+async def redteam_run(r: Rt):
+    """Let an automated fraudster attack the running engine. Customers are copied into a sandbox; nothing live changes."""
+    if RT["lock"] is None:
+        RT["lock"] = asyncio.Lock()
+    if RT["lock"].locked() or time.time() - RT["last"] < 5:
+        raise HTTPException(429, "a red-team run is already in progress or just finished; wait a few seconds")
+    async with RT["lock"]:
+        clk = S["sim"].clk
+        day = (int((clk + 19800) // 86400) + 1) * 86400 - 19800     # the next IST midnight
+        g, st, w, cfg = S["g"], S["eng"].st, S["w"], S["eng"].cfg
+        res = await run_in_threadpool(lambda: redteam.search(g, st, w, cfg, seed=r.seed, pop=max(8, min(60, r.pop)), gens=max(2, min(15, r.gens)),
+                                                            k=max(4, min(30, r.victims)), day_ts=day))
+        RT["last"] = time.time()
+    res.update(round=0, model=S["ver"])
+    S["aud"].log("redteam", model=S["ver"], detail=dict(best=res["best"], evaluated=res["evaluated"], seed=r.seed))
+    return res
+
+
+@app.get("/api/redteam/rounds")
+async def redteam_rounds():
+    """The recorded hardening experiment (python -m fh.redteam --harden 3)."""
+    try:
+        return json.load(open(RT["rounds"]))
+    except OSError:
+        raise HTTPException(404, "no recorded hardening run in this deployment")
 
 
 @app.get("/api/backtest/{bid}/csv", dependencies=[Depends(guard)])

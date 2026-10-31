@@ -16,12 +16,14 @@ import numpy as np
 from . import feat, model, policy, rules
 from .gen import World, T0, DAY, TYPS
 
-ART = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
+ART = os.environ.get("FH_ART") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
 DAYS, T_TRAIN, T_VAL = 42, 22, 30
 
 
-def stream(w, r, days=DAYS):
+def stream(w, r, days=DAYS, extra=None):
     evs = w.window(r, T0, T0 + days * DAY)
+    if extra:                                   # adversarial episodes found by the red team
+        evs = sorted(evs + extra, key=lambda e: e["ts"])
     st, pend = feat.Store(), []
     X, Y, M, F, H = [], [], [], [], []
     for k, x in enumerate(evs):
@@ -62,11 +64,17 @@ def evaluate(y, p, amt, typ, frc, cfg, k):
     ), d
 
 
-def main(seed=7):
+def main(seed=7, adv=None, out=None):
     t = time.time()
+    out = out or ART
     w, r = World(seed), random.Random(seed + 1)
     print("simulating + streaming %d days ..." % DAYS)
-    st, X, Y, M, F, H = stream(w, r)
+    extra = None
+    if adv:
+        from . import redteam
+        extra = redteam.episodes(w, adv, 250, seed + 99)
+        print("  + %d adversarial payments from %d discovered attack types" % (len(extra), len(adv)))
+    st, X, Y, M, F, H = stream(w, r, extra=extra)
     ts = np.array([m[0] for m in M])
     amt = np.array([m[1] for m in M])
     typ = np.array([m[2] for m in M])
@@ -91,12 +99,18 @@ def main(seed=7):
     Bva = g.bins(X[va])   # drift reference = the most recent period the model saw, when customer profiles had matured
     rep["ref"] = {n: (np.bincount(Bva[:, j], minlength=g.nb[j]) / len(Bva)).tolist() for j, n in enumerate(feat.NAMES)}
     rep["ref_n"] = int(len(Bva))
+    reg = typ[te] != "evasive"
+    ys, ps, dd = Y[te][reg], pg[reg], dec[reg]
+    rep["regular"] = dict(auc=model.roc_auc(ys, ps), ap=model.avg_prec(ys, ps), rec1=model.recall_at_fpr(ys, ps, 0.01),
+                          touched=float(((dd > 0) & (ys == 0)).sum() / (ys == 0).sum()), declined=float(((dd == 2) & (ys == 0)).sum() / (ys == 0).sum()),
+                          caught=float(((dd > 0) & (ys == 1)).sum() / max(ys.sum(), 1)))
+    rep["evasive"] = dict(n=int((~reg).sum()), flagged=float((dec[~reg] > 0).mean()) if (~reg).any() else None)
     rep["split"] = dict(train=int(tr.sum()), val=int(va.sum()), test=int(te.sum()), days=DAYS)
-    os.makedirs(ART, exist_ok=True)
-    json.dump(g.dump(), open(os.path.join(ART, "model.json"), "w"))
-    json.dump(rep, open(os.path.join(ART, "report.json"), "w"))
-    np.savez_compressed(os.path.join(ART, "holdout.npz"), p=pg, amt=amt[te], y=Y[te], typ=typ[te], frc=F[te], k=kk[te], chan=chan[te])
-    pickle.dump((w, st), open(os.path.join(ART, "world.pkl"), "wb"))
+    os.makedirs(out, exist_ok=True)
+    json.dump(g.dump(), open(os.path.join(out, "model.json"), "w"))
+    json.dump(rep, open(os.path.join(out, "report.json"), "w"))
+    np.savez_compressed(os.path.join(out, "holdout.npz"), p=pg, amt=amt[te], y=Y[te], typ=typ[te], frc=F[te], k=kk[te], chan=chan[te])
+    pickle.dump((w, st), open(os.path.join(out, "world.pkl"), "wb"))
     print("GAM  AUC %.4f  AP %.4f  recall@1%%FPR %.3f  recall@0.1%%FPR %.3f  ECE %.4f" % (rep["auc"], rep["ap"], rep["rec1"], rep["rec01"], rep["ece"]))
     print("LR   AUC %.4f  AP %.4f  recall@1%%FPR %.3f" % (repl["auc"], repl["ap"], repl["rec1"]))
     print("rules only: recall %.3f  fpr %.4f" % (rep["rules_only"]["recall"], rep["rules_only"]["fpr"]))
@@ -107,7 +121,7 @@ def main(seed=7):
         100 * ((dec > 0) & (y == 1)).sum() / y.sum(), 100 * ((dec > 0) & (y == 0)).sum() / n0))
     for k, v in rep["slices"].items():
         print("   %-11s n=%6d flagged %.3f declined %.3f" % (k, v["n"], v["flagged"], v["declined"]))
-    print("done in %.0fs -> %s" % (time.time() - t, ART))
+    print("done in %.0fs -> %s" % (time.time() - t, out))
 
 
 if __name__ == "__main__":

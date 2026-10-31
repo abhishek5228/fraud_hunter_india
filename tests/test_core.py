@@ -374,3 +374,88 @@ def test_api_key_guard_queue_audit_and_backtest(client, monkeypatch):
     assert bad.status_code == 422 and "missing required" in bad.json()["detail"]
     monkeypatch.delenv("FH_API_KEY")
     assert client.get("/api/audit").status_code == 200              # no key configured: open (development default)
+
+
+# ---------------------------------------------------------------- red team
+def _rt_world():
+    return World(5, nusr=80, nmer=100)
+
+
+def test_redteam_genomes_are_normalised_and_described():
+    from fh import redteam as R
+    rng = random.Random(1)
+    g = R.norm(dict(R.random_genome(rng), split="limit", mult=8))
+    assert g["mult"] == 0
+    assert R.norm(dict(R.random_genome(rng), n=1, split="random"))["split"] == "equal"
+    txt = R.describe(R.random_genome(rng))
+    assert "IST" in txt and ("UPI" in txt or "IMPS" in txt)
+    seen = {R.key(R.random_genome(rng)) for _ in range(300)}
+    assert len(seen) > 250                                              # the search space is genuinely large
+
+
+def test_redteam_build_respects_limits_and_targets_one_customer():
+    from fh import redteam as R
+    w = _rt_world()
+    u = w.users[3]
+    for _ in range(40):
+        g = R.random_genome(random.Random(_))
+        evs = R.build(w, u, T0, g, random.Random(_))
+        assert len(evs) == g["n"] and all(e["uid"] == u["uid"] and e["lab"] == 1 and e["typ"] == "evasive" for e in evs)
+        assert all(e["amt"] <= (100000 if e["chan"] == "upi" else 500000) for e in evs)
+        assert all(a["ts"] < b["ts"] for a, b in zip(evs, evs[1:]))
+    g = dict(R.random_genome(random.Random(2)), split="limit", n=3, rail="upi")
+    assert all(47500 <= e["amt"] < 50000 for e in R.build(w, u, T0, R.norm(g), random.Random(1)))
+
+
+def test_redteam_attack_money_is_an_expectation_and_never_touches_the_real_store():
+    from fh import redteam as R
+    w = _rt_world()
+    st = feat.Store()
+    for i in range(30):
+        st.commit(tx(uid=w.users[0]["uid"], ts=T0 + i * 3600, chan="upi", dev="d1", ip="1.1.1.1", mid="m@ybl"))
+    before = (st.u[w.users[0]["uid"]].n, len(st.pu), len(st.du), len(st.pf))
+    g = R.norm(dict(R.random_genome(random.Random(3)), n=3, social=1, split="equal", payee="fresh", rail="upi"))
+    evs = R.build(w, w.users[0], T0 + 40 * DAY, g, random.Random(1))
+    cfg = policy.Cfg()
+    approve, challenge, decline = _eng(-9.0).m, _eng(-2.0).m, _eng(9.0).m
+    got, tried, _ = R.attack(approve, st, cfg, evs)
+    assert abs(got - tried) < 1e-6                                       # nothing stops it
+    got, tried, stopped = R.attack(decline, st, cfg, evs)
+    assert got == 0 and stopped == len(evs)
+    got, tried, _ = R.attack(challenge, st, cfg, evs)
+    assert abs(got - R.SOCIAL_PASS * tried) < 1e-6                       # a tricked customer completes about half the challenges
+    g2 = dict(g, social=0)
+    got, tried, _ = R.attack(challenge, st, cfg, R.build(w, w.users[0], T0 + 40 * DAY, g2, random.Random(1)))
+    assert abs(got - cfg.fpass * tried) < 1e-6                           # an ordinary fraudster gets through far less often
+    assert (st.u[w.users[0]["uid"]].n, len(st.pu), len(st.du), len(st.pf)) == before
+
+
+def test_redteam_search_finds_something_and_reports_honestly():
+    import json, os
+    from fh import redteam as R, train
+    from fh.model import GAM
+    from fh import api
+    g, w, rep, h, eng = api.load()
+    r = R.search(g, eng.st, w, seed=3, pop=10, gens=3, k=6, day_ts=T0 + 42 * DAY)
+    assert len(r["curve"]) == 3 and r["top"] and r["best"] >= r["baseline"] and r["evaluated"] == 30
+    assert all(0 <= t["share"] <= 1.0001 and 0 <= t["caught"] <= 1 for t in r["top"])
+    assert len({tuple(t["genome"][k] for k in ("rail", "split", "payee", "dev", "ip", "rat", "sim", "social")) for t in r["top"]}) == len(r["top"])
+    assert r["levers"][0]["spread"] >= r["levers"][-1]["spread"]
+
+
+def test_redteam_episodes_are_labelled_fraud_and_deterministic():
+    from fh import redteam as R
+    w = _rt_world()
+    gs = [R.random_genome(random.Random(i)) for i in range(3)]
+    a, b = R.episodes(w, gs, 20, 1), R.episodes(w, gs, 20, 1)
+    assert a == b and a and all(e["lab"] == 1 and e["typ"] == "evasive" for e in a)
+
+
+def test_redteam_api(client, monkeypatch):
+    r = client.post("/api/redteam/run", json=dict(seed=2, gens=2, pop=8, victims=4))
+    assert r.status_code == 200 and r.json()["curve"] and r.json()["model"]
+    assert client.post("/api/redteam/run", json=dict(seed=3, gens=2, pop=8, victims=4)).status_code == 429     # one run at a time, with a pause
+    assert client.get("/api/redteam/rounds").status_code in (200, 404)
+    monkeypatch.setenv("FH_API_KEY", "k")
+    assert client.post("/api/redteam/run", json={}).status_code == 401
+    monkeypatch.delenv("FH_API_KEY")
