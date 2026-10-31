@@ -42,7 +42,7 @@
         <button data-k="mix"><b>Everything at once</b><span>One of each typology</span></button>
       </div>
     </div>
-    <div class="pill"><span class="dot" id="lv"></span><span id="clk">connecting</span></div>
+    <div class="pill" title="Left: real time in India. Right: the simulator's clock, which runs faster than real time (Speed slider). Payment times in the feed are simulated."><span class="dot" id="lv"></span><b id="rt"></b><small id="clk">connecting</small></div>
   </div>
 </header>
 <main>
@@ -51,7 +51,7 @@
   <div class="live">
     <div class="col">
       <div class="card feedc">
-        <h3>Live transactions <span class="note" id="fcount"></span></h3>
+        <h3>Live transactions <span class="note" id="fcount"></span><span class="note sp" title="The simulator runs faster than real time; use the Speed slider">times are simulated</span></h3>
         <div class="chips" id="chips">
           <button class="chip" data-f="all" aria-pressed="true">All</button>
           <button class="chip" data-f="flag" aria-pressed="false">Challenged or declined</button>

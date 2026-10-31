@@ -150,7 +150,7 @@ function connect() {
     else if (m.t === "wire") { if (window.wireLoad && $("#tab-wire").classList.contains("on")) wireLoad(); }
     else if (m.t === "st") {
       const s = m.d; S.snap = s;
-      $("#clk").textContent = stime(s.ts, true).replace(/\d{4}-\d{2}-\d{2} /, "") + " · " + s.tps.toFixed(0) + "/s";
+      $("#clk").textContent = "simulated " + stime(s.ts, true).replace(/\d{4}-\d{2}-\d{2} /, "").slice(0, 9) + " · " + s.tps.toFixed(0) + "/s";
       kpis(s); typTable(s);
       S.hist.push({ ts: s.ts, stop: s.fr_stop, leak: s.fr_leak, lost: s.lg_lost + s.so.lfa });
       if (S.hist.length > 240) S.hist.shift();
@@ -181,3 +181,11 @@ function initLive() {
   });
   connect(); drawMap();
 }
+
+
+/* real wall-clock time in India, independent of the simulator */
+(function () {
+  const f = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const tick = () => { const e = document.getElementById("rt"); if (e) e.textContent = f.format(new Date()).replace(",", "") + " IST"; };
+  tick(); setInterval(tick, 1000);
+})();
