@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Fraud Hunter India: a payment goes in, the cheapest safe action and the reasons come out">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1426"/><stop offset="1" stop-color="#16244a"/></linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f93ff"/><stop offset="1" stop-color="#3fd6a6"/></linearGradient>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="1200" height="420" rx="18" fill="url(#bg)"/>
+  <g opacity=".08" stroke="#9fb0ff"><path d="M0 70H1200M0 140H1200M0 210H1200M0 280H1200M0 350H1200"/><path d="M100 0V420M300 0V420M500 0V420M700 0V420M900 0V420M1100 0V420"/></g>
+  <g transform="translate(60 52)">
+    <circle cx="22" cy="22" r="19" fill="none" stroke="#7f93ff" stroke-width="3"/><circle cx="22" cy="22" r="8" fill="none" stroke="#7f93ff" stroke-width="3"/><path d="M22 0v9M22 35v9M0 22h9M35 22h9" stroke="#7f93ff" stroke-width="3"/>
+    <text x="62" y="31" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" fill="#fff" letter-spacing="-.5">Fraud Hunter <tspan fill="url(#ac)">India</tspan></text>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" fill="#cfd8f3">
+    <text x="60" y="140">Every UPI, IMPS, card and ATM payment</text>
+    <text x="60" y="172">gets one of three answers in about a millisecond,</text>
+    <text x="60" y="204">with the reasons attached.</text>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="700" font-size="20" filter="url(#sh)">
+    <rect x="60" y="230" width="170" height="52" rx="26" fill="#0f8a66"/><text x="145" y="263" text-anchor="middle" fill="#fff">APPROVE</text>
+    <rect x="248" y="230" width="170" height="52" rx="26" fill="#e0a21a"/><text x="333" y="263" text-anchor="middle" fill="#2a1d00">STEP-UP</text>
+    <rect x="436" y="230" width="170" height="52" rx="26" fill="#cc2f46"/><text x="521" y="263" text-anchor="middle" fill="#fff">DECLINE</text>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#8fa0ba">
+    <text x="60" y="318">Cheapest action, not just a fraud score:</text>
+    <text x="60" y="340">what fraud costs versus what blocking a good customer costs.</text>
+    <text x="60" y="368">Synthetic data, built around Indian scams: vishing, mule</text>
+    <text x="60" y="390">accounts, SIM swap, screen-share, QR and refund tricks.</text>
+  </g>
+  <g transform="translate(730 56)" font-family="Inter,Segoe UI,Arial,sans-serif" filter="url(#sh)">
+    <rect width="410" height="300" rx="16" fill="#fff"/>
+    <text x="24" y="42" font-size="30" font-weight="800" fill="#1b2638">₹18,500</text><text x="24" y="64" font-size="14" fill="#5b6b82">UPI · p2p · first payment to this payee</text>
+    <rect x="272" y="18" width="116" height="34" rx="17" fill="#cc2f46"/><text x="330" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Decline 98%</text>
+    <g font-size="14" fill="#1b2638">
+      <text x="24" y="102">Screen-share app active</text><rect x="236" y="91" width="96" height="12" rx="6" fill="#cc2f46"/><text x="386" y="102" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+3.97</text>
+      <text x="24" y="134">First payment to payee</text><rect x="236" y="123" width="74" height="12" rx="6" fill="#cc2f46"/><text x="386" y="134" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+3.05</text>
+      <text x="24" y="166">Payee is a person, not a shop</text><rect x="236" y="155" width="61" height="12" rx="6" fill="#cc2f46"/><text x="386" y="166" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+2.51</text>
+      <text x="24" y="198">Amount near usual spend</text><rect x="236" y="187" width="22" height="12" rx="6" fill="#0f8a66"/><text x="386" y="198" font-size="13" fill="#0f8a66" text-anchor="end" font-weight="700">−0.85</text>
+    </g>
+    <rect x="24" y="222" width="362" height="56" rx="10" fill="#fdecef"/>
+    <text x="38" y="246" font-size="13.5" fill="#8a1f33" font-weight="700">What the customer sees</text>
+    <text x="38" y="266" font-size="13" fill="#8a1f33">Never share OTP or PIN. Call 1930.</text>
+  </g>
+</svg>
