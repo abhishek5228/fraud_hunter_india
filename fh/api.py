@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
+from . import ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -365,7 +365,9 @@ async def backtest_ep(req: Request):
     if len(raw) > 25_000_000:
         raise HTTPException(413, "file too large (limit 25 MB)")
     try:
-        rows, bad = backtest.parse(raw.decode("utf-8-sig"))
+        canon, irep = ingest.convert(raw.decode("utf-8-sig", errors="replace"))
+        rows, bad = backtest.parse(canon)
+        bad = irep["notes"] + [b for b in bad if "unknown or missing category" not in b]
         sm, out = await run_in_threadpool(backtest.run, rows, S["g"], S["eng"].cfg)
     except (ValueError, UnicodeDecodeError) as e:
         raise HTTPException(422, str(e))

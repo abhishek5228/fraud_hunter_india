@@ -88,7 +88,7 @@
         <div class="note" id="bt-status" style="margin-top:8px" role="status"></div>
       </div></div>
       <div class="card"><h3>File format</h3><div class="body note" style="line-height:1.6">
-        <b style="color:var(--ink)">Required:</b> <span class="mono">ts, uid, amt, chan, mid</span> and a location: <span class="mono">city</span> or <span class="mono">lat, lon</span>.<br>
+        <b style="color:var(--ink)">Any common CSV works:</b> column names are matched automatically (sender_id, amount_inr, timestamp, fraud_flag ...) and a note lists what was guessed. The canonical names are:<br><b style="color:var(--ink)">Required:</b> <span class="mono">ts, uid, amt, chan, mid</span> and a location: <span class="mono">city</span> or <span class="mono">lat, lon</span>.<br>
         <span class="mono">ts</span> is epoch seconds or ISO-8601 (no zone means IST). <span class="mono">chan</span> is upi, ecom, pos, atm or imps. <span class="mono">mid</span> is the payee or merchant.<br>
         <b style="color:var(--ink)">Optional:</b> <span class="mono">cat, dev, ip, pers, coll, rat, sim</span>, and <span class="mono">label</span>: 0 good, 1 fraud the customer did not make, 2 fraud the customer was tricked into. With labels you get catch rates and money saved.<br>
         <b style="color:var(--ink)">History matters.</b> Give at least a month: the engine judges each payment against that customer's past, so a short file overstates friction.

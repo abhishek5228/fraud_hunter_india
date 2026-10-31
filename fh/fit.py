@@ -298,7 +298,7 @@ def run(text, out, mp=None, mode="auto", chan=None, city=None):
             notes += irep["notes"]
             if "label" not in irep["mapped"]:
                 raise ValueError("no label column found. Pass --map label=<your column>.")
-            if irep["mapped"].get("uid") and "mid" in irep["mapped"] or mode == "events":
+            if mode == "events" or (irep["mapped"].get("uid") and "mid" in irep["mapped"] and not irep.get("cohort")):
                 path = "events"
             else:
                 path = "tabular"

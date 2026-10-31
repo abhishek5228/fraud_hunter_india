@@ -88,6 +88,29 @@ def detect(fields, override=None):
     return m
 
 
+def _cohort(fields, m, rep):
+    """No customer or payee id in the file: stand in with groups of similar rows, and say loudly that this is an approximation."""
+    if "uid" not in m:
+        c = [f for f in fields if re.match(r"(sender|user|customer|payer|account)_", norm(f)) and norm(f) not in ("sender_account_age_days",)
+             and not re.search(r"(count|avg|amount|age_days|flag|new|failed|id)$", norm(f))]
+        if c:
+            m["uid"] = c
+            rep["cohort"] = True
+            rep["notes"].append("no customer id column: customers were approximated by the group (%s). Every 'customer' is really a cohort, "
+                                "so history signals (usual amount, known payees, devices) are NOT real customer history. Use this to see the "
+                                "mechanics, not to judge accuracy." % ", ".join(c))
+    if "mid" not in m:
+        c = [f for f in fields if re.match(r"(receiver|merchant|payee|beneficiary)_", norm(f)) and not norm(f).endswith("id")] or \
+            [f for f in fields if norm(f) in ("merchant_category", "category")]
+        if c:
+            m["mid"] = c
+            rep["notes"].append("no payee column: payees were approximated by %s" % ", ".join(c))
+
+
+def _get(r, col):
+    return "|".join((r.get(c) or "") for c in col) if isinstance(col, list) else r.get(col, "")
+
+
 def _ts(v):
     v = (v or "").strip()
     if not v:
@@ -145,6 +168,8 @@ def convert(text, override=None, chan=None, city=None, max_rows=bt.MAX_ROWS, sni
         raise ValueError("empty file or no header row")
     m = detect(fields, override)
     rep = dict(mapped=dict(m), columns=len(fields), notes=[], dropped=0)
+    if "uid" not in m or "mid" not in m:
+        _cohort(fields, m, rep)
     missing = [k for k in ("ts", "uid", "amt") if k not in m]
     if missing:
         raise ValueError("could not find: %s. Pass --map, e.g. --map %s=<your column>. Columns: %s" % (
@@ -220,7 +245,7 @@ def convert(text, override=None, chan=None, city=None, max_rows=bt.MAX_ROWS, sni
         if lab is None:
             lab = ""
         rt = r.get(m["rat"], "").strip().lower() if "rat" in m else ""
-        w.writerow([ts, r[m["uid"]], a, _chan(r.get(m.get("chan", "")), dchan), r.get(m.get("mid", ""), "") or r[m["uid"]] + "~self",
+        w.writerow([ts, _get(r, m["uid"]), a, _chan(r.get(m.get("chan", "")), dchan), (_get(r, m["mid"]) if "mid" in m else "") or _get(r, m["uid"]) + "~self",
                     ct, la, lo, "", r.get(m.get("dev", ""), ""), r.get(m.get("ip", ""), ""), "", r.get(m.get("coll", ""), ""),
                     "0" if rt in ("", "[]", "0", "false", "none", "no", "nan") else "1", r.get(m.get("sim", ""), ""), lab])
     rep["dropped"] = n_ts_bad + n_amt_bad

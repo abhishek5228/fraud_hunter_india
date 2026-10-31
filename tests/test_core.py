@@ -371,7 +371,7 @@ def test_api_key_guard_queue_audit_and_backtest(client, monkeypatch):
     kinds = [x["kind"] for x in client.get("/api/audit?limit=20", headers=h).json()["rows"]]
     assert "score" in kinds
     bad = client.post("/api/backtest", content="ts,uid\n1,a\n", headers={**h, "content-type": "text/csv"})
-    assert bad.status_code == 422 and "missing required" in bad.json()["detail"]
+    assert bad.status_code == 422 and "could not find" in bad.json()["detail"]
     monkeypatch.delenv("FH_API_KEY")
     assert client.get("/api/audit").status_code == 200              # no key configured: open (development default)
 
