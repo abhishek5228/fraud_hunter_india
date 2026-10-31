@@ -45,6 +45,11 @@ def check(x, r, st):
         hits.append((STEP, "COLLECT_FIRST_PAYEE", "Collect request from a first-time payee: approving it sends money out"))
     if r["ndev"] and x["amt"] >= 25000:
         hits.append((STEP, "NEW_DEVICE_HIGH_VALUE", "New device with a %s payment" % inr(x["amt"], 0)))
+    if ch == "upi" and x["amt"] > 1_000_000:
+        hits.append((BLOCK, "EXCEEDS_UPI_LIMIT", "%s is above every UPI transaction limit; a real UPI payment cannot be this large" % inr(x["amt"], 0)))
+    P = st.u.get(x["uid"])
+    if (P is None or P.n < 4) and x["amt"] >= 100_000:       # the model never saw big money from a stranger; do not let it extrapolate to "safe"
+        hits.append((STEP, "NEW_CUSTOMER_HIGH_VALUE", "%s from a customer with almost no history" % inr(x["amt"], 0)))
     for k in ("u:" + x["uid"], "d:" + str(x["dev"]), "i:" + str(ip24(x["ip"]))):
         if k in st.blk:
             hits.append((BLOCK, "BLOCKLIST", "Manually blocked entity %s" % k))
