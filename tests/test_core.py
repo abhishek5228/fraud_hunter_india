@@ -272,3 +272,105 @@ def test_api_end_to_end(client):
     assert client.post("/api/sim", json={"fest": 2.0}).json()["fest"] == 2.0
     client.post("/api/sim", json={"fest": 1.0})
     assert "ready" in client.get("/api/drift").json()
+
+
+# ---------------------------------------------------------------- backtest, audit, persistence, auth
+def _csv(rows):
+    head = "ts,uid,amt,chan,mid,cat,dev,ip,city,pers,coll,rat,sim,label\n"
+    return head + "\n".join(",".join(str(v) for v in r) for r in rows) + "\n"
+
+
+def test_backtest_parse_reports_bad_rows_and_never_guesses():
+    from fh import backtest
+    t = 1_790_000_000
+    rows, bad = backtest.parse(_csv([
+        [t, "a", 100, "upi", "m@ybl", "grocery", "d1", "1.1.1.1", "Mumbai", 0, 0, 0, "", 0],
+        [t, "a", -5, "upi", "m@ybl", "grocery", "d1", "1.1.1.1", "Mumbai", 0, 0, 0, "", 0],        # negative amount
+        [t, "a", 5, "cheque", "m@ybl", "grocery", "d1", "1.1.1.1", "Mumbai", 0, 0, 0, "", 0],      # unknown rail
+        [t, "a", 5, "upi", "m@ybl", "grocery", "d1", "1.1.1.1", "Atlantis", 0, 0, 0, "", 0],       # unknown city
+        ["2026-10-01T10:00:00+05:30", "b", 5, "upi", "m@ybl", "nonsense", "", "", "Delhi", 1, 0, 0, "", 2],
+    ]))
+    assert [r["uid"] for r in rows] == ["a", "b"]
+    assert sum("line" in b for b in bad) == 3 and any("category" in b for b in bad)
+    assert rows[1]["lab"] == 1 and rows[1]["app"] is True and rows[1]["cat"] == "p2p"      # label 2 = authorised scam
+    with pytest.raises(ValueError, match="missing required"):
+        backtest.parse("ts,uid\n1,a\n")
+    with pytest.raises(ValueError, match="location"):
+        backtest.parse("ts,uid,amt,chan,mid\n1,a,5,upi,m\n")
+
+
+def test_backtest_runs_in_isolation_and_reports_impact():
+    import json, os
+    from fh import backtest, train
+    from fh.model import GAM
+    g = GAM.load(json.load(open(os.path.join(train.ART, "model.json"))))
+    w = World(5, nusr=120, nmer=120)
+    ev = w.window(random.Random(3), T0 + 60 * DAY, T0 + 100 * DAY, boost=0.1)
+    rows, bad = backtest.parse(_csv([[int(e["ts"]), e["uid"], e["amt"], e["chan"], e["mid"], e["cat"], e["dev"] or "", e["ip"] or "", e["city"], int(e["pers"]),
+                                      int(e["coll"]), int(e["rat"]), "", e["lab"]] for e in ev]))
+    live = feat.Store()
+    sm, out = backtest.run(rows, g)
+    assert sm["scored"] + sm["warm"] == sm["n"] == len(out) and sm["warmup_days"] > 0 and sm["labelled"]
+    d = sm["decisions"]
+    assert d["approve"] + d["step"] + d["decline"] == sm["scored"]
+    assert sm["impact"]["cur"]["cost"] < sm["impact"]["allow"]["cost"] and sm["auc"] > 0.9
+    assert not live.u                                               # a backtest never touches live state
+    assert backtest.to_csv(out).splitlines()[0].startswith("line,ts,uid")
+
+
+def test_backtest_warns_on_short_files():
+    import json, os
+    from fh import backtest, train
+    from fh.model import GAM
+    g = GAM.load(json.load(open(os.path.join(train.ART, "model.json"))))
+    t = 1_790_000_000
+    rows, _ = backtest.parse(_csv([[t + i * 600, "u%d" % (i % 7), 200, "upi", "m@ybl", "grocery", "d%d" % (i % 7), "1.1.%d.1" % (i % 7), "Pune", 0, 0, 0, "", ""] for i in range(300)]))
+    sm, _ = backtest.run(rows, g)
+    assert not sm["labelled"] and any("spans" in w for w in sm["warnings"])
+
+
+def test_audit_log_roundtrip(tmp_path):
+    from fh.audit import Audit
+    a = Audit(str(tmp_path / "a.db"))
+    a.log("score", "t1", "u1", 500.0, "upi", "DECLINE", 0.9, ["MULE_PAYEE"], "abc12345", dict(src="api"))
+    a.log("feedback", "t1", detail=dict(verdict="fraud"))
+    rows = a.recent(10)
+    assert a.count() == 2 and rows[0]["kind"] == "feedback" and rows[1]["codes"] == "MULE_PAYEE" and rows[1]["model"] == "abc12345"
+    assert [r["kind"] for r in a.recent(10, "score")] == ["score"]
+
+
+def test_state_snapshot_roundtrip_and_staleness(tmp_path):
+    from fh import persist
+    st = feat.Store()
+    st.commit(tx(chan="upi", dev="d1", ip="1.2.3.4", pers=True, mid="mu1@ybl"))
+    p = str(tmp_path / "state.pkl")
+    persist.save(st, p)
+    back = persist.load(p)
+    assert back.u["u1"].n == 1 and "u1" in back.du["d1"] and "u1" in back.pu["mu1@ybl"]
+    assert persist.load(p, newer_than=1e12) is None and persist.load(str(tmp_path / "nope.pkl")) is None
+    open(p, "wb").write(b"garbage")
+    assert persist.load(p) is None                                  # a corrupt snapshot falls back to the trained state
+
+
+def test_api_key_guard_queue_audit_and_backtest(client, monkeypatch):
+    u = client.get("/api/users?n=1").json()[0]
+    body = dict(uid=u["uid"], amt=900.0, cat="p2p", chan="upi", city=u["city"], mid="newguy@ybl", pers=True, dev="never", ip="9.9.9.9", commit=True)
+    monkeypatch.setenv("FH_API_KEY", "s3cret")
+    assert client.post("/api/score", json=body).status_code == 401
+    assert client.post("/api/score", json=body, headers={"x-api-key": "wrong"}).status_code == 401
+    assert client.get("/api/audit").status_code == 401 and client.post("/api/backtest", content="x").status_code == 401
+    assert client.get("/api/health").json()["auth"] is True        # health stays open
+    r = client.post("/api/score", json=body, headers={"x-api-key": "s3cret"})
+    assert r.status_code == 200 and r.json()["model"] and len(r.json()["model"]) == 8
+    h = {"x-api-key": "s3cret"}
+    cid = r.json()["id"]
+    if r.json()["dec"] > 0:
+        assert cid in [c["id"] for c in client.get("/api/queue", headers=h).json()["cases"]]
+        client.post("/api/feedback", json=dict(id=cid, verdict="legit"), headers=h)
+        assert cid not in [c["id"] for c in client.get("/api/queue", headers=h).json()["cases"]]
+    kinds = [x["kind"] for x in client.get("/api/audit?limit=20", headers=h).json()["rows"]]
+    assert "score" in kinds
+    bad = client.post("/api/backtest", content="ts,uid\n1,a\n", headers={**h, "content-type": "text/csv"})
+    assert bad.status_code == 422 and "missing required" in bad.json()["detail"]
+    monkeypatch.delenv("FH_API_KEY")
+    assert client.get("/api/audit").status_code == 200              # no key configured: open (development default)

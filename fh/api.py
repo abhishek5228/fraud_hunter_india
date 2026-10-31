@@ -2,19 +2,22 @@
 import os
 import json
 import time
+import hmac
 import pickle
+import hashlib
 import asyncio
 import random
 from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import train, policy, whatif, feat, drift
+from . import train, policy, whatif, feat, drift, backtest, audit, persist, sample
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -39,24 +42,46 @@ def load():
     return g, w, rep, h, eng
 
 
+def model_version():
+    return hashlib.sha1(open(os.path.join(train.ART, "model.json"), "rb").read()).hexdigest()[:8]
+
+
+STATE = os.path.join(train.ART, "state.pkl")
+
+
+def guard(req: Request):
+    """If FH_API_KEY is set, integration endpoints need a matching X-API-Key header."""
+    k = os.environ.get("FH_API_KEY")
+    if k and not hmac.compare_digest(req.headers.get("x-api-key", ""), k):
+        raise HTTPException(401, "missing or wrong X-API-Key header")
+
+
 @asynccontextmanager
 async def life(app):
     g, w, rep, h, eng = load()
-    S.update(g=g, w=w, rep=rep, h=h, eng=eng, sim=Sim(eng, w, T0 + train.DAYS * DAY), subs=set(), fb=dict(fraud=0, legit=0, blocks=0))
+    if os.environ.get("FH_STATE", "1") != "0":     # resume from the last snapshot of what the engine had learned
+        old = persist.load(STATE, os.path.getmtime(os.path.join(train.ART, "world.pkl")))
+        if old is not None:
+            eng.st = old
+            print("restored feature store from", STATE)
+    S.update(g=g, w=w, rep=rep, h=h, eng=eng, sim=Sim(eng, w, T0 + train.DAYS * DAY), subs=set(), fb=dict(fraud=0, legit=0, blocks=0),
+             ver=model_version(), aud=audit.Audit(os.environ.get("FH_AUDIT_DB", os.path.join(train.ART, "audit.db"))), reviewed=set(), bt={})
     task = asyncio.create_task(pump())
     yield
     task.cancel()
+    if os.environ.get("FH_STATE", "1") != "0":
+        persist.save(eng.st, STATE)
 
 
 app = FastAPI(title="Fraud Hunter India", version="1.1", lifespan=life)
 # A static frontend hosted elsewhere (Netlify, Vercel, GitHub Pages) can call this API. Restrict in production:
 #   FH_ORIGINS="https://my-frontend.netlify.app,https://example.com"
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get("FH_ORIGINS", "*").split(",") if o.strip()],
-                   allow_methods=["GET", "POST"], allow_headers=["content-type"])
+                   allow_methods=["GET", "POST"], allow_headers=["content-type", "x-api-key"])
 
 
 async def pump():
-    sim, last, lsnap = S["sim"], time.time(), 0.0
+    sim, last, lsnap, lsave = S["sim"], time.time(), 0.0, time.time()
     while True:
         await asyncio.sleep(0.1)
         now = time.time()
@@ -64,6 +89,9 @@ async def pump():
         last = now
         if msgs:
             bc({"t": "tx", "d": msgs})
+        if now - lsave >= 120 and os.environ.get("FH_STATE", "1") != "0":
+            lsave = now
+            await run_in_threadpool(persist.save, S["eng"].st, STATE)
         if now - lsnap >= 1.0:
             lsnap = now
             bc({"t": "st", "d": sim.snap()})
@@ -118,7 +146,7 @@ class Tx(BaseModel):
     commit: bool = True
 
 
-@app.post("/api/score")
+@app.post("/api/score", dependencies=[Depends(guard)])
 async def score(t: Tx):
     if t.cat not in CATS:
         raise HTTPException(422, "unknown cat; one of %s" % sorted(CATS))
@@ -139,6 +167,9 @@ async def score(t: Tx):
     x["city"] = x["city"] or ""
     x["lab"], x["typ"] = 0, "api"
     res = S["eng"].score(x, commit=commit)
+    res["model"] = S["ver"]
+    S["aud"].log("score", res["id"], res["uid"], res["amt"], res["chan"], res["dname"], res["p"], [h["code"] for h in res["hits"]], S["ver"],
+                 dict(commit=commit, src="api"))
     return res
 
 
@@ -155,11 +186,12 @@ class Cf(BaseModel):
     passed: bool
 
 
-@app.post("/api/confirm")
+@app.post("/api/confirm", dependencies=[Depends(guard)])
 async def confirm(c: Cf):
     """Second phase of a step-up: tell the engine whether the customer passed the challenge."""
     if not S["eng"].confirm(c.id, c.passed):
         raise HTTPException(404, "unknown case, or it was not a step-up")
+    S["aud"].log("confirm", c.id, model=S["ver"], detail=dict(passed=c.passed))
     return dict(ok=True)
 
 
@@ -169,7 +201,7 @@ class Fb(BaseModel):
     block: bool = False
 
 
-@app.post("/api/feedback")
+@app.post("/api/feedback", dependencies=[Depends(guard)])
 async def feedback(f: Fb):
     c = S["eng"].cases.get(f.id)
     if not c:
@@ -186,6 +218,8 @@ async def feedback(f: Fb):
         S["fb"]["legit"] += 1
     else:
         raise HTTPException(422, "verdict must be fraud or legit")
+    S["reviewed"].add(f.id)
+    S["aud"].log("feedback", f.id, c["uid"], c["amt"], c["chan"], c["dname"], c["p"], model=S["ver"], detail=dict(verdict=f.verdict, block=f.block))
     return dict(ok=True, fb=S["fb"], blocklist=len(S["eng"].st.blk))
 
 
@@ -232,9 +266,11 @@ async def get_policy():
     return S["eng"].cfg.dict()
 
 
-@app.post("/api/policy")
+@app.post("/api/policy", dependencies=[Depends(guard)])
 async def set_policy(d: dict):
-    return S["eng"].cfg.update(d).dict()
+    new = S["eng"].cfg.update(d).dict()
+    S["aud"].log("policy", model=S["ver"], detail=new)
+    return new
 
 
 @app.post("/api/policy/lab")
@@ -301,7 +337,60 @@ async def meta():
 
 @app.get("/api/health")
 async def health():
-    return dict(ok=True, n=S["sim"].n, p99_us=S["eng"].pct(0.99))
+    return dict(ok=True, n=S["sim"].n, p99_us=S["eng"].pct(0.99), model=S["ver"], auth=bool(os.environ.get("FH_API_KEY")))
+
+
+@app.get("/api/audit", dependencies=[Depends(guard)])
+async def audit_log(limit: int = 50, kind: str | None = None):
+    return dict(total=S["aud"].count(), rows=S["aud"].recent(limit, kind))
+
+
+@app.get("/api/queue", dependencies=[Depends(guard)])
+async def queue(limit: int = 40):
+    """Challenged or declined payments nobody has reviewed yet, newest first."""
+    out = []
+    for c in reversed(S["eng"].cases.values()):
+        if c["dec"] > 0 and c["id"] not in S["reviewed"]:
+            out.append(dict(id=c["id"], ts=c["ts"], uid=c["uid"], amt=c["amt"], chan=c["chan"], cat=c["cat"], city=c["city"], dec=c["dec"], p=c["p"],
+                            hits=[h["code"] for h in c["hits"]], why=c["why"]))
+            if len(out) >= limit:
+                break
+    return dict(open=len(out), cases=out)
+
+
+@app.post("/api/backtest", dependencies=[Depends(guard)])
+async def backtest_ep(req: Request):
+    """Body: the CSV text (content-type text/csv). Replays it through an isolated copy of the engine and returns the report."""
+    raw = await req.body()
+    if len(raw) > 25_000_000:
+        raise HTTPException(413, "file too large (limit 25 MB)")
+    try:
+        rows, bad = backtest.parse(raw.decode("utf-8-sig"))
+        sm, out = await run_in_threadpool(backtest.run, rows, S["g"], S["eng"].cfg)
+    except (ValueError, UnicodeDecodeError) as e:
+        raise HTTPException(422, str(e))
+    sm["problems"], sm["model"], sm["id"] = bad, S["ver"], hashlib.sha1(raw).hexdigest()[:10]
+    S["bt"][sm["id"]] = backtest.to_csv(out)
+    while len(S["bt"]) > 4:
+        S["bt"].pop(next(iter(S["bt"])))
+    S["aud"].log("backtest", detail=dict(id=sm["id"], rows=sm["n"]), model=S["ver"])
+    return sm
+
+
+@app.get("/api/backtest/sample", dependencies=[Depends(guard)])
+async def backtest_sample():
+    """The built-in 45-day sample file, run through the backtest."""
+    sm, out = await run_in_threadpool(lambda: backtest.run(backtest.parse(sample.sample_csv())[0], S["g"], S["eng"].cfg))
+    sm["problems"], sm["model"], sm["id"], sm["sample"] = [], S["ver"], "sample", True
+    S["bt"]["sample"] = backtest.to_csv(out)
+    return sm
+
+
+@app.get("/api/backtest/{bid}/csv", dependencies=[Depends(guard)])
+async def backtest_csv(bid: str):
+    if bid not in S["bt"]:
+        raise HTTPException(404, "no such backtest (results are kept for the last few runs)")
+    return PlainTextResponse(S["bt"][bid], headers={"content-disposition": 'attachment; filename="decisions-%s.csv"' % bid})
 
 
 @app.get("/")
