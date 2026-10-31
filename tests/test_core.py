@@ -166,10 +166,17 @@ def test_policy_monotone_in_risk_and_amount_aware():
     assert first(50000) < first(500) < first(50)
 
 
-def test_upi_has_no_margin_to_lose():
+def test_margin_depends_on_rail_recipient_and_amount():
+    assert policy.rail_k("pos", 500, False) == policy.rail_k("ecom", 9000, False) == 1.0
+    assert policy.rail_k("upi", 5000, True) == 0.0                 # paying a person earns nothing
+    assert policy.rail_k("upi", 1500, False) == 0.0                # small merchant payments stay free
+    assert abs(policy.rail_k("upi", 5000, False) - 0.4 / 1.8) < 1e-9   # NPCI 0.4% MDR above Rs 2,000, from 15 Oct 2026
+    assert policy.rail_k("imps", 90000, True) == policy.rail_k("atm", 5000, False) == 0.0
+    ks = policy.kvec(["pos", "upi", "upi", "upi", "imps"], [500, 5000, 1500, 5000, 9000], [False, False, False, True, True])
+    assert np.allclose(ks, [1.0, 0.4 / 1.8, 0.0, 0.0, 0.0])
     c = policy.Cfg()
-    upi, card = policy.costs(0.3, 5000.0, c, policy.RAIL["upi"]), policy.costs(0.3, 5000.0, c, policy.RAIL["pos"])
-    assert upi[2] < card[2] and upi[0] == card[0]      # declining a UPI payment forfeits no margin
+    free, paid = policy.costs(0.3, 5000.0, c, 0.0), policy.costs(0.3, 5000.0, c, 1.0)
+    assert free[2] < paid[2] and free[0] == paid[0]      # declining a margin-free payment forfeits less
 
 
 def test_customer_messages_are_bilingual_and_only_when_needed():
@@ -218,7 +225,7 @@ def test_api_end_to_end(client):
     assert client.post("/api/score", json=dict(uid="x", amt=5, cat="grocery", city="Mumbai", chan="cheque")).status_code == 422
     assert client.get("/api/case/" + bad["id"]).json()["id"] == bad["id"]
     lab = client.post("/api/policy/lab", json={}).json()
-    assert lab["cur"]["cost"] < lab["best1"]["cost"] and lab["thr"][0]["upi"]["step"] > 0
+    assert lab["cur"]["cost"] < lab["best1"]["cost"] and lab["thr"][0]["upi_p2p"]["step"] > 0
     assert client.post("/api/attack", json={"kind": "sim_swap"}).json()["injected"] >= 2
     assert client.post("/api/attack", json={"kind": "nope"}).status_code == 422
     assert client.post("/api/sim", json={"fest": 2.0}).json()["fest"] == 2.0

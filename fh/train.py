@@ -31,7 +31,7 @@ def stream(w, r, days=DAYS):
         v, raw = st.feats(x)
         X.append(v)
         Y.append(x["lab"])
-        M.append((x["ts"], x["amt"], x["typ"], x["chan"]))
+        M.append((x["ts"], x["amt"], x["typ"], x["chan"], bool(x["pers"])))
         hh = rules.check(x, raw, st)
         F.append(rules.level(hh))
         H.append("+".join(h[1] for h in hh))
@@ -71,7 +71,7 @@ def main(seed=7):
     amt = np.array([m[1] for m in M])
     typ = np.array([m[2] for m in M])
     chan = np.array([m[3] for m in M])
-    kk = policy.kvec(chan)
+    kk = policy.kvec(chan, amt, np.array([m[4] for m in M]))
     print("  %d txns, %d fraud (%.2f%%)  [%.1fs]" % (len(Y), Y.sum(), 100 * Y.mean(), time.time() - t))
     burn = ts >= T0 + 7 * DAY   # burn-in: the first week is cold start, every payee looks new
     tr, va, te = burn & (ts < T0 + T_TRAIN * DAY), (ts >= T0 + T_TRAIN * DAY) & (ts < T0 + T_VAL * DAY), ts >= T0 + T_VAL * DAY
@@ -88,7 +88,9 @@ def main(seed=7):
                              fpr=float(((F[te] > 0) & (Y[te] == 0)).sum() / max((Y[te] == 0).sum(), 1)))
     Btr = g.bins(X[tr])
     rep["importance"] = sorted([dict(f=n, v=float(np.abs(g.sh[j][Btr[:, j]]).mean())) for j, n in enumerate(feat.NAMES)], key=lambda a: -a["v"])
-    rep["ref"] = {n: (np.bincount(Btr[:, j], minlength=g.nb[j]) / len(Btr)).tolist() for j, n in enumerate(feat.NAMES)}  # drift baseline
+    Bva = g.bins(X[va])   # drift reference = the most recent period the model saw, when customer profiles had matured
+    rep["ref"] = {n: (np.bincount(Bva[:, j], minlength=g.nb[j]) / len(Bva)).tolist() for j, n in enumerate(feat.NAMES)}
+    rep["ref_n"] = int(len(Bva))
     rep["split"] = dict(train=int(tr.sum()), val=int(va.sum()), test=int(te.sum()), days=DAYS)
     os.makedirs(ART, exist_ok=True)
     json.dump(g.dump(), open(os.path.join(ART, "model.json"), "w"))

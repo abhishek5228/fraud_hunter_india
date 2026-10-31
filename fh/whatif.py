@@ -48,7 +48,7 @@ def lab(h, cfg):
     thr = []
     for amt in (100, 500, 2000, 10000, 50000, 200000):
         row = dict(amt=amt)
-        for rail, kv in (("upi", 0.0), ("card", 1.0)):
+        for rail, kv in (("upi_p2p", 0.0), ("upi_m", policy.rail_k("upi", amt, False)), ("card", 1.0)):
             d = np.argmin(np.stack(policy.costs(grid, np.full_like(grid, amt), c, kv)), 0)
             row[rail] = dict(step=float(grid[np.argmax(d >= 1)]) if (d >= 1).any() else 1.0,
                              decline=float(grid[np.argmax(d >= 2)]) if (d >= 2).any() else 1.0)

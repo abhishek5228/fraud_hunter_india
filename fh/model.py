@@ -65,7 +65,7 @@ class GAM:
     def bins(s, X):
         return np.stack([np.searchsorted(s.edges[j], X[:, j], side="right") for j in range(X.shape[1])], 1)
 
-    def fit(s, X, y, Xv, yv, rounds=300, lr=0.05, lam=20.0, nb=24, log=print):
+    def fit(s, X, y, Xv, yv, rounds=900, lr=0.06, lam=20.0, nb=24, log=print):
         n, d = X.shape
         s.edges = []
         for j in range(d):

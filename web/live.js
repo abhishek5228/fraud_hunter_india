@@ -26,7 +26,7 @@ function rowFor(t) {
   const why = t.hits.length ? t.hits[0] : t.top[0] ? t.top[0].txt : "";
   const r = el("div", { class: "row" + (miss ? " miss" : fa ? " fa" : "") + (S.sel === t.id ? " sel" : ""), "data-id": t.id, tabindex: 0, role: "button" },
     el("div", { class: "t" }, stime(t.ts)),
-    el("div", { class: "m" }, el("div", null, el("b", null, t.cat.replace("_", " ")), " · ", t.uid), el("div", { class: "sub" }, `${t.city} · ${t.chan === "ecom" ? "online" : t.chan}` + (t.dec && why ? " · " + why : ""))),
+    el("div", { class: "m" }, el("div", null, el("b", null, t.cat.replace("_", " ")), " · ", t.uid), el("div", { class: "sub" }, `${RAILN[t.chan] || t.chan} · ${t.city}` + (t.dec && why ? " · " + why : ""))),
     el("div", { class: "a" }, money(t.amt, t.amt < 100 ? 2 : 0), el("div", { class: "rk" }, el("i", { style: `width:${Math.max(2, 100 * Math.min(1, Math.log10(Math.max(t.p, 1e-4) * 1e4) / 4))}%` }))),
     el("div", { style: "text-align:right" }, el("span", { class: "tag d" + t.dec }, DN[t.dec])));
   const go = () => select(t.id);
@@ -62,38 +62,40 @@ async function select(id) {
 }
 
 /* ---- map: stylised world, recent transactions pulse then fade ---- */
-const LAND = [
-  [[-168, 66], [-140, 70], [-95, 72], [-80, 68], [-62, 58], [-55, 48], [-70, 42], [-76, 35], [-81, 25], [-97, 26], [-105, 22], [-117, 32], [-124, 40], [-125, 49], [-140, 59], [-165, 60]],
-  [[-55, 60], [-45, 60], [-20, 70], [-20, 82], [-60, 82], [-70, 76]],
-  [[-80, 10], [-62, 11], [-50, 0], [-35, -6], [-40, -22], [-55, -35], [-68, -52], [-75, -48], [-72, -30], [-80, -6]],
-  [[-10, 36], [-9, 43], [0, 50], [8, 58], [25, 70], [60, 70], [100, 77], [140, 72], [180, 68], [165, 60], [142, 52], [128, 40], [122, 30], [110, 20], [106, 10], [100, 3], [98, 15], [92, 22], [80, 10], [73, 18], [68, 24], [57, 26], [50, 30], [44, 12], [35, 30], [27, 37], [10, 38]],
-  [[-17, 21], [-10, 35], [10, 37], [32, 31], [43, 12], [51, 11], [40, -10], [35, -25], [20, -35], [12, -18], [9, 4], [-8, 5], [-17, 14]],
-  [[114, -22], [130, -12], [142, -11], [153, -26], [147, -39], [135, -35], [115, -34]],
-];
+const INDIA = [[68.1, 23.7], [69.2, 22.4], [70.8, 20.7], [72.8, 21.2], [72.9, 19.0], [73.4, 16.0], [74.4, 14.2], [75.0, 12.3], [76.3, 9.7], [77.5, 8.1], [78.2, 8.9], [79.9, 10.3], [80.3, 13.3], [80.1, 15.7], [82.2, 16.9], [84.9, 19.2], [86.9, 21.2], [88.3, 21.7], [89.0, 22.3], [88.7, 24.5], [89.8, 26.2], [91.7, 25.3], [92.3, 24.0], [93.3, 22.9], [94.5, 24.6], [95.2, 26.5], [97.3, 28.2], [95.9, 29.4], [94.0, 28.5], [92.1, 27.8], [90.0, 28.0], [88.9, 27.3], [88.2, 27.9], [86.0, 27.9], [84.0, 28.6], [81.9, 30.3], [79.1, 31.0], [78.7, 32.6], [79.4, 34.0], [77.8, 35.5], [75.9, 36.7], [74.4, 35.0], [74.7, 33.2], [75.2, 32.4], [74.0, 31.0], [74.4, 29.8], [72.9, 28.9], [70.5, 28.0], [69.5, 26.5], [70.2, 25.2]];
+const HUBS = [["Delhi", 77.21, 28.61], ["Mumbai", 72.88, 19.08], ["Bengaluru", 77.59, 12.97], ["Kolkata", 88.36, 22.57], ["Chennai", 80.27, 13.08], ["Patna", 85.14, 25.59]];
+const VIEW = { lon: [60, 106], lat: [4, 38] };
 const DCOL = ["#0f8a66", "#e0a21a", "#cc2f46"];
 function drawMap() {
   const cv = $("#map"); if (!cv || $("#tab-live").classList.contains("on") === false) return requestAnimationFrame(drawMap);
   const dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
   const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
-  const X = lon => (lon + 180) / 360 * W, Y = lat => (78 - lat) / 135 * H;
+  const sx = W / (VIEW.lon[1] - VIEW.lon[0]), sy = H / (VIEW.lat[1] - VIEW.lat[0]), sc = Math.min(sx, sy), ox = (W - sc * (VIEW.lon[1] - VIEW.lon[0])) / 2, oy = (H - sc * (VIEW.lat[1] - VIEW.lat[0])) / 2;
+  const X = lon => ox + (lon - VIEW.lon[0]) * sc, Y = lat => oy + (VIEW.lat[1] - lat) * sc;
+  const inView = (lo, la) => lo >= VIEW.lon[0] && lo <= VIEW.lon[1] && la >= VIEW.lat[0] && la <= VIEW.lat[1];
   g.fillStyle = "#f3f6fa"; g.fillRect(0, 0, W, H);
   g.strokeStyle = "#e3e8f0"; g.lineWidth = 1;
-  for (let lo = -150; lo <= 150; lo += 30) { g.beginPath(); g.moveTo(X(lo), 0); g.lineTo(X(lo), H); g.stroke(); }
-  for (let la = -60; la <= 60; la += 30) { g.beginPath(); g.moveTo(0, Y(la)); g.lineTo(W, Y(la)); g.stroke(); }
-  g.fillStyle = "#dde4ee";
-  for (const poly of LAND) { g.beginPath(); poly.forEach(([lo, la], i) => (i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)))); g.closePath(); g.fill(); }
-  const now = performance.now();
+  for (let lo = 65; lo <= 105; lo += 10) { g.beginPath(); g.moveTo(X(lo), 0); g.lineTo(X(lo), H); g.stroke(); }
+  for (let la = 10; la <= 35; la += 5) { g.beginPath(); g.moveTo(0, Y(la)); g.lineTo(W, Y(la)); g.stroke(); }
+  g.fillStyle = "#dde4ee"; g.beginPath(); INDIA.forEach(([lo, la], i) => (i ? g.lineTo(X(lo), Y(la)) : g.moveTo(X(lo), Y(la)))); g.closePath(); g.fill();
+  g.fillStyle = "#8a97ab"; g.font = "10.5px system-ui"; g.textAlign = "left";
+  for (const [n, lo, la] of HUBS) { g.fillRect(X(lo) - 1.5, Y(la) - 1.5, 3, 3); g.fillText(n, X(lo) + 5, Y(la) + 3); }
+  const now = performance.now(), clampX = lo => Math.max(VIEW.lon[0] + 1.5, Math.min(VIEW.lon[1] - 1.5, lo)), clampY = la => Math.max(VIEW.lat[0] + 1.5, Math.min(VIEW.lat[1] - 1.5, la));
   S.dots = S.dots.filter(d => now - d.born < 7000);
+  let abroad = 0;
   for (const d of S.dots) {
-    const a = 1 - (now - d.born) / 7000, t = d.t, x = X(t.lon), y = Y(t.lat), big = t.dec > 0;
-    g.fillStyle = DCOL[t.dec]; g.globalAlpha = Math.max(0.1, a) * (big ? 1 : 0.55);
-    g.beginPath(); g.arc(x, y, big ? 4.5 : 2.5, 0, 7); g.fill();
-    if (big) { g.strokeStyle = DCOL[t.dec]; g.globalAlpha = a * 0.6; g.beginPath(); g.arc(x, y, 5 + (1 - a) * 22, 0, 7); g.stroke(); }
+    const a = 1 - (now - d.born) / 7000, t = d.t, out = !inView(t.lon, t.lat), big = t.dec > 0;
+    const x = X(out ? clampX(t.lon) : t.lon), y = Y(out ? clampY(t.lat) : t.lat);
+    g.globalAlpha = Math.max(0.1, a) * (big ? 1 : 0.55);
+    if (out) { abroad++; g.strokeStyle = DCOL[t.dec]; g.lineWidth = 2; g.setLineDash([3, 3]); g.beginPath(); g.arc(x, y, 6, 0, 7); g.stroke(); g.setLineDash([]); continue; }
+    g.fillStyle = DCOL[t.dec]; g.beginPath(); g.arc(x, y, big ? 4.5 : 2.5, 0, 7); g.fill();
+    if (big) { g.strokeStyle = DCOL[t.dec]; g.globalAlpha = a * 0.6; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 5 + (1 - a) * 22, 0, 7); g.stroke(); }
   }
   g.globalAlpha = 1;
+  if (abroad) { g.fillStyle = "#6b7a90"; g.font = "11px system-ui"; g.textAlign = "right"; g.fillText("dashed rings: used abroad (" + abroad + ")", W - 8, H - 8); }
   const sel = S.feed.find(t => t.id === S.sel);
-  if (sel) { g.strokeStyle = "#0d1a2d"; g.lineWidth = 2; g.beginPath(); g.arc(X(sel.lon), Y(sel.lat), 9, 0, 7); g.stroke(); }
+  if (sel && inView(sel.lon, sel.lat)) { g.strokeStyle = "#0d1a2d"; g.lineWidth = 2; g.beginPath(); g.arc(X(sel.lon), Y(sel.lat), 9, 0, 7); g.stroke(); }
   requestAnimationFrame(drawMap);
 }
 
@@ -110,8 +112,8 @@ function cum() {
   });
 }
 function typTable(s) {
-  const rows = Object.entries(s.typ).filter(([k]) => ["card_test", "ato", "ato_soft", "hijack", "travel", "high_value", "mule"].includes(k));
-  const lab = { card_test: "Card testing", ato: "Account takeover", ato_soft: "Soft takeover", hijack: "Session hijack", travel: "Cloned card", high_value: "Stolen-card splurge", mule: "Mule ring" };
+  const rows = Object.entries(s.typ).filter(([k]) => k in TYPN);
+  const lab = TYPN;
   const h = $("#typ");
   if (!rows.length) { h.replaceChildren(el("div", { class: "empty" }, "No fraud seen yet. Launch an attack from the top bar.")); return; }
   rows.sort((a, b) => b[1][2] - a[1][2]);
@@ -122,6 +124,19 @@ function typTable(s) {
       tr.addEventListener("pointermove", e => showTip(e, lab[k], [{ v: v[1] + " of " + v[2], l: "stopped" }, { v: v[0], l: "got through" }, { v: money(v[3]), l: "total value" }]));
       tr.addEventListener("pointerleave", hideTip); return tr;
     }))));
+}
+
+/* ---- drift: population stability of live traffic against training ---- */
+async function drift() {
+  if (!$("#tab-live").classList.contains("on")) return;
+  const d = await api("/api/drift").catch(() => null), h = $("#drift"), st = $("#dstat");
+  if (!d || !d.ready) return;
+  st.className = "status sp " + d.status; st.textContent = d.status === "stable" ? "stable" : d.status === "moderate" ? "drifting" : "major drift";
+  const top = d.feats.slice(0, 6), mx = Math.max(0.25, top[0].psi);
+  h.replaceChildren(el("div", { class: "dr" }, top.flatMap(f => [el("div", { class: "mono", title: f.desc }, f.f),
+    el("div", { class: "bar", onpointermove: e => showTip(e, f.f, [{ v: f.psi.toFixed(3), l: "population stability index" }, { v: f.desc, l: "" }]), onpointerleave: hideTip }, el("i", { style: `width:${Math.min(100, 100 * f.psi / mx)}%;background:${f.psi > 0.25 ? "#cc2f46" : f.psi > 0.1 ? "#e0a21a" : "#0f8a66"}` })),
+    el("div", { class: "v mono", style: "text-align:right" }, f.psi.toFixed(2))])),
+    el("div", { class: "note", style: "margin-top:8px" }, `PSI over the last ${d.n} payments. Under 0.10 is stable, 0.10 to 0.25 is worth watching, over 0.25 means retrain. Try Festival surge.`));
 }
 
 /* ---- stream + controls ---- */
@@ -147,6 +162,12 @@ function initLive() {
   $("#maplg").append(...["Approved", "Step-up", "Declined"].map((n, i) => el("span", null, el("i", { style: "border-color:" + DCOL[i] }), n)));
   $("#chips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; S.filter = b.dataset.f; $$(".chip").forEach(c => c.setAttribute("aria-pressed", c === b)); refeed(); });
   $("#pause").onclick = async () => { const s = await api("/api/sim", { run: !(S.snap ? S.snap.run : true) }); S.snap = s; $("#pause").textContent = s.run ? "Pause" : "Resume"; };
+  $("#fest").onclick = async e => {
+    const btn = e.currentTarget, on = btn.getAttribute("aria-pressed") !== "true";
+    await api("/api/sim", { fest: on ? 2.5 : 1 });
+    btn.setAttribute("aria-pressed", on); btn.textContent = "Festival surge: " + (on ? "on" : "off");
+  };
+  setInterval(drift, 4000);
   $("#spd").oninput = e => api("/api/sim", { spd: +e.target.value });
   $("#bst").oninput = e => api("/api/sim", { boost: +e.target.value });
   const m = $("#atkm");

@@ -258,14 +258,18 @@ async def model_card():
 async def drift():
     """Population stability index of recent traffic against the training distribution, per feature."""
     eng, g, ref = S["eng"], S["g"], S["rep"]["ref"]
-    if len(eng.vecs) < 300:
+    if len(eng.vecs) < 600:
         return dict(n=len(eng.vecs), ready=False, feats=[])
     X = np.array(eng.vecs)
     out = []
     for j, n in enumerate(g.names):
+        if n == "hrar":   # hour-rarity swings with time of day by construction; a few-hour window would always look drifted
+            continue
         live = np.bincount(g.bins(X[:, j:j + 1].repeat(len(g.names), 1))[:, j], minlength=g.nb[j]) / len(X)
         e, a = np.clip(np.array(ref[n]), 1e-4, None), np.clip(live, 1e-4, None)
-        out.append(dict(f=n, psi=float(np.sum((a - e) * np.log(a / e))), desc=DESC.get(n, "")))
+        raw = float(np.sum((a - e) * np.log(a / e)))
+        floor = (g.nb[j] - 1) * (1 / len(X) + 1 / S["rep"]["ref_n"])    # PSI of pure sampling noise grows with bins / sample size
+        out.append(dict(f=n, psi=max(0.0, raw - floor), raw=raw, desc=DESC.get(n, "")))
     out.sort(key=lambda r: -r["psi"])
     worst = out[0]["psi"]
     return dict(n=len(X), ready=True, feats=out, worst=worst, status="major" if worst > 0.25 else "moderate" if worst > 0.1 else "stable",

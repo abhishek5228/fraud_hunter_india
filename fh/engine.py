@@ -19,7 +19,7 @@ class Engine:
         lg, con = s.m.contrib(vec)
         p = 1.0 / (1.0 + math.exp(-max(-30.0, min(30.0, lg))))
         hits = rules.check(x, raw, s.st)
-        cost = policy.costs(p, x["amt"], s.cfg, policy.RAIL.get(x["chan"], 1.0))
+        cost = policy.costs(p, x["amt"], s.cfg, policy.rail_k(x["chan"], x["amt"], x.get("pers")))
         dpol = policy.pick(*cost)
         dec = max(dpol, rules.level(hits))
         top = explain.reasons(s.m.names, con, raw)

@@ -39,13 +39,13 @@ function tabbing() {
 
 /* ------------------------------------------------------------ policy lab */
 const SL = [
-  ["risk", "Risk aversion", "How much a fraud dollar weighs against friction. 1.0 is neutral.", -1, 1, 0.05, v => "×" + Math.pow(10, v).toFixed(2), v => Math.pow(10, v)],
-  ["fee", "Fixed cost per fraud", "Chargeback fee and analyst time, on top of the lost amount.", 0, 100, 1, v => "$" + v, v => v],
-  ["churn", "Cost of declining a good customer", "Support contact, churn risk, lifetime value at stake.", 0, 150, 1, v => "$" + v, v => v],
-  ["step", "Cost of a step-up challenge", "SMS or app prompt, plus the friction of making someone wait.", 0, 15, 0.1, v => "$" + (+v).toFixed(1), v => v],
-  ["marg", "Margin on a lost sale", "Share of the amount you forgo when a sale does not complete.", 0, 0.3, 0.005, v => (100 * v).toFixed(1) + "%", v => v],
-  ["lpass", "Good customers who pass a challenge", "The rest abandon the purchase.", 0.7, 1, 0.01, v => (100 * v).toFixed(0) + "%", v => v],
-  ["fpass", "Fraudsters who pass a challenge", "Bots rarely do; a hijacked phone may relay the code.", 0, 0.5, 0.01, v => (100 * v).toFixed(0) + "%", v => v],
+  ["risk", "Risk aversion", "How much a fraud rupee weighs against friction. 1.0 is neutral.", -1, 1, 0.05, v => "×" + Math.pow(10, v).toFixed(2), v => Math.pow(10, v)],
+  ["fee", "Fixed cost per fraud", "Complaint handling, reversal operations and disputes, on top of the lost amount.", 0, 3000, 50, v => money(+v), v => v],
+  ["churn", "Cost of declining a good customer", "Support contact and the chance they move their payments to another app.", 0, 2000, 25, v => money(+v), v => v],
+  ["step", "Cost of a step-up challenge", "PIN or OTP re-entry, plus the friction of making someone wait.", 0, 100, 1, v => money(+v), v => v],
+  ["marg", "Margin on a card payment", "Card payments earn this. UPI to a person, IMPS and ATM earn none; UPI to a merchant above ₹2,000 earns 0.4% (NPCI, from 15 Oct 2026).", 0, 0.05, 0.001, v => (100 * v).toFixed(1) + "%", v => v],
+  ["lpass", "Good customers who pass a challenge", "The rest abandon the payment.", 0.7, 1, 0.01, v => (100 * v).toFixed(0) + "%", v => v],
+  ["fpass", "Fraudsters assumed to pass a challenge", "The model's assumption. The live simulator shows how wrong it is for SIM swaps and scams.", 0, 0.5, 0.01, v => (100 * v).toFixed(0) + "%", v => v],
 ];
 let LABV = null, DEF = null, labT = 0;
 async function lab() {
@@ -64,39 +64,43 @@ async function lab() {
   }
   runLab();
 }
+const hbar = (v, good) => el("div", { class: "hb" }, el("i", { style: `width:${100 * v}%;background:${good ? (v > .85 ? "#0f8a66" : v > .6 ? "#e0a21a" : "#cc2f46") : (v < .05 ? "#0f8a66" : v < .3 ? "#e0a21a" : "#cc2f46")}` }));
 async function runLab() {
   const r = await api("/api/policy/lab", LABV), out = $("#labout"), c = r.cur;
-  const save = 1 - c.cost / r.naive.cost;
+  const vs2 = 1 - c.cost / r.best2.cost, vs1 = 1 - c.cost / r.best1.cost;
   const tile = (l, v, s, k) => el("div", { class: "kpi " + (k || "") }, el("div", { class: "l" }, l), el("div", { class: "v" }, v), el("div", { class: "s" }, s));
   const big = el("div", { class: "big" },
-    tile("Total cost, held-out period", mk(c.cost), `${save >= 0 ? pct(save, 0) + " below" : pct(-save, 0) + " above"} one global threshold`, save > 0 ? "good" : "bad"),
+    tile("Total cost, held-out 12 days", mk(c.cost), `${vs2 >= 0 ? pct(vs2, 0) + " below" : pct(-vs2, 0) + " above"} the best tuned step-up and decline thresholds`, vs2 > 0 ? "good" : "bad"),
     tile("Fraud caught", pct(c.caught, 1), `${c.bps.toFixed(1)} bps of volume still leaks`, ""),
-    tile("Good customers touched", pct(c.touched, 2), `${pct(c.declined_legit, 2)} declined outright`, c.touched > 0.04 ? "warn" : ""),
+    tile("Good customers touched", pct(c.touched, 2), `${pct(c.declined_legit, 2)} declined outright`, c.touched > 0.05 ? "warn" : ""),
     tile("Decisions", `${pct(c.approve, 1)} approve`, `${pct(c.step, 1)} step-up · ${pct(c.decline, 1)} decline`, ""));
-
-  const bars = [["This policy", c.cost, "#2b47ff"], ["One threshold (decline above 50%)", r.naive.cost, "#9aa8bd"], ["Hard rules only", r.rules.cost, "#9aa8bd"], ["Approve everything", r.allow.cost, "#9aa8bd"]];
+  const bars = [["This policy (amount-aware)", c.cost, "#2b47ff"], ["Best tuned step-up and decline thresholds", r.best2.cost, "#9aa8bd"], ["Best tuned single threshold", r.best1.cost, "#9aa8bd"], ["Untuned: decline above 50%", r.naive.cost, "#c3ccdb"], ["Hard rules only", r.rules.cost, "#c3ccdb"], ["Approve everything", r.allow.cost, "#c3ccdb"]];
   const mx = Math.max(...bars.map(b => b[1]));
-  const cb = el("div", { class: "econ", style: "grid-template-columns:230px 1fr 70px" });
+  const cb = el("div", { class: "econ", style: "grid-template-columns:260px 1fr 80px" });
   bars.forEach(([n, v, col], i) => cb.append(el("div", { class: i === 0 ? "pick" : "" }, el("span", { class: i === 0 ? "nm" : "" }, n)), el("div", { class: "bar" }, el("i", { style: `width:${100 * v / mx}%;background:${col}` })), el("div", { class: "v" }, mk(v))));
-
   const fr = el("div", { class: "chart" }), cr = el("div", { class: "chart" });
   const grid2 = el("div", { class: "grid2" },
     el("div", { class: "card" }, el("h3", null, "Fraud leaked vs. customers touched", el("span", { class: "note sp" }, "each point is a risk-aversion setting")), el("div", { class: "body" }, fr)),
     el("div", { class: "card" }, el("h3", null, "Total cost vs. risk aversion", el("span", { class: "note sp" }, "the valley is the best trade")), el("div", { class: "body" }, cr)));
-
-  const thr = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Purchase"), el("th", { class: "r" }, "Step-up from"), el("th", { class: "r" }, "Decline from"))),
-    el("tbody", null, r.thr.map(t => el("tr", null, el("td", null, money(t.amt)), el("td", { class: "r" }, pr(t.step)), el("td", { class: "r" }, pr(t.decline))))));
+  const cell = x => `${pr(x.step)} / ${pr(x.decline)}`;
+  const thr = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Payment"), el("th", { class: "r" }, "UPI to person"), el("th", { class: "r" }, "UPI to merchant"), el("th", { class: "r" }, "Card"))),
+    el("tbody", null, r.thr.map(t => el("tr", null, el("td", null, money(t.amt)), el("td", { class: "r" }, cell(t.upi_p2p)), el("td", { class: "r" }, cell(t.upi_m)), el("td", { class: "r" }, cell(t.card))))));
+  const rails = el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Rail"), el("th", { class: "r" }, "Payments"), el("th", { class: "r" }, "Fraud"), el("th", { class: "r" }, "Caught"), el("th", { class: "r" }, "Good touched"))),
+    el("tbody", null, Object.entries(r.rails).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => el("tr", null, el("td", null, RAILN[k] || k), el("td", { class: "r" }, v.n.toLocaleString("en-IN")), el("td", { class: "r" }, v.fraud), el("td", { class: "r" }, v.fraud ? pct(v.caught, 0) : "–"), el("td", { class: "r" }, pct(v.touched, 1))))));
   const fraudT = Object.entries(r.typ).filter(([, v]) => v.fraud), legitT = Object.entries(r.typ).filter(([, v]) => !v.fraud);
+  const nm = k => TYPN[k] || ({ newpayee: "paying a new person", newphone: "new phone or reinstall", kiosk: "shared kiosk phone", screenshare: "screen-share for IT help", vpn: "VPN user", trip: "travelling", bigbuy: "big purchase", rent: "monthly rent", burst: "quick follow-up", micro: "₹1 to ₹20 UPI", legit: "ordinary payments" }[k] || k);
   const tt = (rows, good) => el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, ""), el("th", { class: "r" }, "n"), el("th", null, "Flagged"), el("th", { class: "r" }, ""))),
-    el("tbody", null, rows.map(([k, v]) => el("tr", null, el("td", null, k.replace("_", " ")), el("td", { class: "r" }, v.n), el("td", null, el("div", { class: "hb" }, el("i", { style: `width:${100 * v.flagged}%;background:${good ? (v.flagged > .85 ? "#0f8a66" : v.flagged > .6 ? "#e0a21a" : "#cc2f46") : (v.flagged < .05 ? "#0f8a66" : v.flagged < .3 ? "#e0a21a" : "#cc2f46")}` }))), el("td", { class: "r" }, pct(v.flagged, 0))))));
+    el("tbody", null, rows.sort((a, b) => b[1].flagged - a[1].flagged).map(([k, v]) => el("tr", null, el("td", null, nm(k)), el("td", { class: "r" }, v.n.toLocaleString("en-IN")), el("td", null, hbar(v.flagged, good)), el("td", { class: "r" }, pct(v.flagged, 0))))));
   out.replaceChildren(big,
-    el("div", { class: "card" }, el("h3", null, "What each approach costs on the same 12 days"), el("div", { class: "body" }, cb, el("div", { class: "note", style: "margin-top:8px" }, "Cost = fraud dollars that got through + fixed fraud fees + sales lost to declines and abandoned challenges + the cost of every challenge issued."))),
+    el("div", { class: "card" }, el("h3", null, "What each approach costs on the same 12 days"), el("div", { class: "body" }, cb, el("div", { class: "note", style: "margin-top:8px" }, "Cost = fraud rupees that got through + fixed fraud fees + margin and goodwill lost to declines and abandoned challenges + the cost of every challenge issued. The tuned baselines were fitted on this very period, which flatters them."))),
     grid2,
     el("div", { class: "grid2" },
-      el("div", { class: "card" }, el("h3", null, "The bar moves with the stakes", el("span", { class: "note sp" }, "risk at which the action changes")), el("div", { class: "body" }, thr, el("div", { class: "note", style: "margin-top:8px" }, "Small purchases are waved through at risk levels where a large purchase would be challenged. A single fixed threshold cannot do that."))),
-      el("div", { class: "card" }, el("h3", null, "Fraud types and their lookalikes", el("span", { class: "note sp" }, "held-out period")), el("div", { class: "body" }, el("div", { class: "note" }, "Fraud: higher is better"), tt(fraudT, true), el("div", { class: "note", style: "margin:10px 0 2px" }, "Legitimate lookalikes: lower is better"), tt(legitT, false)))));
+      el("div", { class: "card" }, el("h3", null, "The bar moves with the stakes and the rail", el("span", { class: "note sp" }, "risk where step-up / decline begin")), el("div", { class: "body" }, thr, el("div", { class: "note", style: "margin-top:8px" }, "A ₹100 payment is waved through at risk levels where a ₹50,000 one would be challenged. Rails that earn no margin are cheaper to decline, so they are challenged slightly earlier than card payments of the same size."))),
+      el("div", { class: "card" }, el("h3", null, "By payment rail", el("span", { class: "note sp" }, "held-out period")), el("div", { class: "body" }, rails))),
+    el("div", { class: "card" }, el("h3", null, "Fraud types and their lookalikes", el("span", { class: "note sp" }, "held-out period")), el("div", { class: "body" },
+      el("div", { class: "grid2" }, el("div", null, el("div", { class: "note" }, "Fraud: higher is better"), tt(fraudT, true)), el("div", null, el("div", { class: "note" }, "Legitimate lookalikes: lower is better"), tt(legitT, false))))));
   const F = r.front;
-  xyChart(fr, { title: "frontier", h: 250, xr: [0, Math.max(0.12, ...F.map(f => f.touched)) * 1.05], yr: [0, Math.max(...F.map(f => f.bps)) * 1.08], xt: [0, .02, .04, .06, .08, .1], yt: [0, 10, 20, 30, 40, 50], xf: v => pct(v, 0), yf: v => v, xl: "Good customers touched", yl: "Fraud leaked (bps of volume)",
+  xyChart(fr, { title: "frontier", h: 250, xr: [0, Math.max(0.1, ...F.map(f => f.touched)) * 1.05], yr: [0, Math.max(...F.map(f => f.bps)) * 1.08], xt: [0, .02, .04, .06, .08, .1], yt: [0, 10, 20, 30, 40, 50], xf: v => pct(v, 0), yf: v => v, xl: "Good customers touched", yl: "Fraud leaked (bps of volume)",
     lines: [{ name: "Risk-aversion sweep", color: "#9aa8bd", pts: F.map(f => [f.touched, f.bps, f.risk]), dots: true, r: 3 }, { name: "Current setting", color: "#2b47ff", line: false, dots: true, r: 6, pts: [[c.touched, c.bps, LABV.risk]] }],
     tip: (p, l) => [{ v: pct(p[0], 2), l: "good customers touched" }, { v: p[1].toFixed(1) + " bps", l: "fraud leaked" }, { v: "×" + p[2].toFixed(2), l: "risk aversion" }] });
   lineChart(cr, { title: "cost vs risk", x: F.map(f => f.risk), xfmt: v => "×" + v.toFixed(2), yfmt: v => mk(v), w: 430, h: 250, series: [{ name: "Total cost", color: "#2b47ff", y: F.map(f => f.cost) }] });
@@ -108,43 +112,56 @@ async function play() {
   if (PM) return;
   PM = await api("/api/meta"); PU = await api("/api/users?n=14");
   S.cfg = PM.cfg;
-  $("#p-uid").append(...PU.map(u => el("option", { value: u.uid }, `${u.uid} · ${u.city} · ${u.txns} txns, typical $${u.typ}`)));
-  $("#p-cat").append(...PM.cats.map(c => el("option", { value: c, selected: c === "digital" ? "" : null }, c.replace("_", " "))));
-  $("#p-city").append(el("option", { value: "" }, "Customer's home city"), ...PM.cities.map(c => el("option", { value: c }, c)));
+  $("#p-uid").append(...PU.map(u => el("option", { value: u.uid }, `${u.uid} · ${u.city} · typical ${money(u.typ)}`)));
+  $("#p-cat").append(...PM.cats.filter(c => !["p2p", "bank_transfer", "atm_cash"].includes(c)).map(c => el("option", { value: c, selected: c === "digital" ? "" : null }, c.replace("_", " "))));
+  $("#p-city").append(el("option", { value: "" }, "Customer's home city"), ...PM.cities.map((c, i) => el("option", { value: c }, c + (i >= PM.nin ? " (abroad)" : ""))));
   $("#p-go").onclick = () => playGo();
   const sc = [
-    ["Everyday groceries", "Small in-person purchase at home", async () => post({ amt: 28, cat: "grocery", chan: "pos" })],
-    ["Big planned purchase", "$1,800 of electronics on the usual device", async () => post({ amt: 1800, cat: "electronics", chan: "ecom" })],
-    ["Teleporting card", "In-person at home, then 20 minutes later on another continent", async () => {
-      const u = pu(), far = u.city === "Lagos" ? "Sydney" : "Lagos";
-      await post({ amt: 18, cat: "restaurant", chan: "pos", commit: true });
-      return post({ amt: 640, cat: "luxury", chan: "pos", city: far, dt: 1200 });
+    ["Chai and groceries", "₹180 UPI payment to a usual merchant", async () => post({ amt: 180, cat: "grocery", chan: "upi", pay: "known" })],
+    ["Paying a new person", "₹3,500 UPI to someone new: common and usually fine", async () => post({ amt: 3500, chan: "upi", pay: "newpers" })],
+    ["Rent day", "₹22,000 IMPS to the usual landlord account", async () => post({ amt: 22000, chan: "imps", pay: "ben" })],
+    ["SIM-swap drain", "New phone, SIM changed 3 hours ago, ₹49,500 to a stranger", async () => post({ amt: 49500, chan: "upi", pay: "newpers", dev: "new", ip: "new", sim: 3 })],
+    ["Vishing with screen-share", "Own phone, caller on the line, screen shared, ₹38,000 to a stranger", async () => post({ amt: 38000, chan: "upi", pay: "newpers", rat: true })],
+    ["Mule magnet", "A payee four strangers paid minutes ago receives ₹7,500", async () => post({ amt: 7500, chan: "upi", pay: "fan" })],
+    ["Teleporting card", "In-person at home, 20 minutes later in Dubai", async () => {
+      await post({ amt: 240, cat: "food", chan: "pos", pay: "known", commit: true });
+      return post({ amt: 18500, cat: "fashion", chan: "pos", city: "Dubai", pay: "newmer", dt: 1200 });
     }],
-    ["New device, gift cards", "$900 of gift cards from a device and network never seen", async () => post({ amt: 900, cat: "gift_cards", chan: "ecom", dev: "new", ip: "new" })],
-    ["Card-testing burst", "Seven $1 charges, 15 seconds apart (these are remembered)", async () => {
+    ["Card-testing burst", "Seven ₹1 online charges, 15 seconds apart (remembered)", async () => {
       const dv = "bot-" + Math.random().toString(36).slice(2, 7); let r;
-      for (let i = 0; i < 7; i++) r = await post({ amt: 1, cat: "digital", chan: "ecom", dev: dv, ip: "new", commit: true, dt: 15 * i });
+      for (let i = 0; i < 7; i++) r = await post({ amt: 1, cat: "digital", chan: "ecom", pay: "newmer", dev: dv, ip: "new", commit: true, dt: 15 * i });
       return r;
     }],
   ];
   $("#scen").append(...sc.map(([n, d, f]) => el("button", { class: "btn", onclick: async () => { renderOut(await f()); } }, el("b", null, n), el("div", { class: "note" }, d))));
 }
 const pu = () => PU.find(u => u.uid === $("#p-uid").value) || PU[0];
-let seqClk = null;
+const rnd = () => Math.floor(Math.random() * 250) + 1, rid = () => Math.random().toString(36).slice(2, 8);
 async function post(o) {
-  const u = pu(), rnd = () => Math.floor(Math.random() * 250) + 1;
-  const ecom = (o.chan || "ecom") === "ecom";
-  const ts = (S.snap ? S.snap.ts : PM.start) + (o.dt || 0) + 1;
+  const u = pu(), ch = o.chan || "upi", digital = ["upi", "ecom", "imps"].includes(ch);
+  const ts = (S.snap ? S.snap.ts : PM.start) + (o.dt || 0) + 1, handles = ["ybl", "okaxis", "oksbi", "paytm"], hnd = handles[rnd() % 4];
+  let mid, cat = o.cat || "digital", pers = false;
+  if (ch === "atm") { mid = "atm-" + u.city; cat = "atm_cash"; }
+  else if (o.pay === "newpers" || o.pay === "fan") { mid = `pg${rid()}@${hnd}`; cat = ch === "imps" ? "bank_transfer" : "p2p"; pers = true; }
+  else if (o.pay === "ben") { mid = u.ben; cat = "bank_transfer"; pers = true; }
+  else if (o.pay === "newmer") mid = `pgshop${rid()}@${hnd}`;
+  else if (ch === "imps") { mid = u.ben; cat = "bank_transfer"; pers = true; }
+  else if (ch === "upi" && o.cat === undefined && o.pay === "known") { mid = u.merchant; cat = o.cat || "grocery"; }
+  else mid = u.merchant;
+  if (o.pay === "fan") {  // four other customers pay this payee for the first time, just before
+    const others = PU.filter(v => v.uid !== u.uid).slice(0, 4);
+    for (let i = 0; i < others.length; i++) await api("/api/score", { uid: others[i].uid, amt: 2000 + 500 * i, cat: "p2p", chan: "upi", city: others[i].city, mid, pers: true, dev: others[i].dev, ip: others[i].ip, ts: ts - 600 + 60 * i, commit: true });
+  }
   const body = {
-    uid: u.uid, amt: +o.amt, cat: o.cat, chan: o.chan, city: o.city || u.city, ts, commit: !!o.commit, mid: "m_play",
-    dev: ecom ? (o.dev === "new" ? "new-" + rnd() + rnd() : o.dev && o.dev !== "known" ? o.dev : u.dev) : null,
-    ip: ecom ? (o.ip === "new" ? `203.${rnd()}.${rnd()}.${rnd()}` : u.ip) : null,
+    uid: u.uid, amt: +o.amt, cat, chan: ch, city: o.city || u.city, ts, commit: !!o.commit, mid, pers, coll: !!o.coll, rat: !!o.rat, sim: o.sim === undefined ? null : o.sim,
+    dev: digital ? (o.dev === "new" ? "new-" + rnd() + rnd() : o.dev && o.dev !== "known" ? o.dev : u.dev) : null,
+    ip: digital ? (o.ip === "new" ? `203.${rnd()}.${rnd()}.${rnd()}` : u.ip) : null,
   };
   return api("/api/score", body);
 }
 async function playGo() {
-  const v = id => $("#" + id).value;
-  renderOut(await post({ amt: v("p-amt"), cat: v("p-cat"), chan: v("p-chan"), city: v("p-city") || null, dev: v("p-dev"), ip: v("p-ip") }));
+  const v = id => $("#" + id).value, ch = v("p-chan");
+  renderOut(await post({ amt: v("p-amt"), cat: v("p-cat"), chan: ch, city: v("p-city") || null, pay: v("p-pay"), dev: v("p-dev"), ip: v("p-ip"), sim: $("#p-sim").checked ? 6 : undefined, rat: $("#p-rat").checked, coll: $("#p-coll").checked }));
 }
 function renderOut(c) { renderCase($("#pinsp"), c, S.cfg, {}); }
 
@@ -158,7 +175,7 @@ async function model() {
   const tiles = el("div", { class: "kpis", style: "grid-template-columns:repeat(6,1fr)" },
     tile("ROC AUC", r.auc.toFixed(4), `logistic baseline ${r.lr.auc.toFixed(4)}`), tile("Average precision", r.ap.toFixed(3), `logistic baseline ${r.lr.ap.toFixed(3)}`, "good"),
     tile("Recall at 1% false alarms", pct(r.rec1, 1), `baseline ${pct(r.lr.rec1, 1)}`), tile("Recall at 0.1% false alarms", pct(r.rec01, 1), `baseline ${pct(r.lr.rec01, 1)}`),
-    tile("Calibration error (ECE)", r.ece.toFixed(4), "predicted vs. observed rate"), tile("Held-out transactions", kfmt(r.n), `${r.npos} fraud · later in time than training`));
+    tile("Calibration error (ECE)", r.ece.toFixed(4), "predicted vs. observed rate"), tile("Held-out payments", kfmt(r.n), `${r.npos} fraud · later in time than training`));
   const pc = el("div", { class: "chart" }), cc = el("div", { class: "chart" });
   const imp = r.importance.slice(0, 12), im = imp[0].v;
   const impT = el("div", { class: "econ", style: "grid-template-columns:70px 1fr 48px" });
@@ -177,11 +194,13 @@ async function model() {
       el("div", { class: "card" }, el("h3", null, "Who gets flagged, at default costs"), el("div", { class: "body" }, slT))),
     el("div", { class: "card" }, el("h3", null, "Learned shape of every feature", el("span", { class: "note sp" }, "log-odds added to the score as the feature varies; the score is the sum of these")), el("div", { class: "body" }, sh)),
     el("div", { class: "card" }, el("h3", null, "How it works, and where it falls short"), el("div", { class: "body" }, el("ul", { class: "lim" },
-      el("li", null, el("b", null, "Streaming features, no leakage. "), "Every feature is computed from state before the transaction is committed. Velocity windows, spending profile, travel speed from the last in-person use, and a device and network graph all update afterwards."),
-      el("li", null, el("b", null, "Delayed labels. "), "Fraud reports reach the reputation counters hours late and only count for 7 days, which stopped lifetime counts from drifting out of the range the model was trained on."),
+      el("li", null, el("b", null, "Built for how India pays. "), "UPI is about 70% of volume; IMPS, cards and ATMs make up the rest. The payee graph matters most here: mule accounts are found by strangers paying them for the first time, not by anything the victim does."),
+      el("li", null, el("b", null, "Streaming features, no leakage. "), "Every feature is computed from state before the payment is committed. Velocity windows, spend profile, travel speed from the last in-person use, and the device, network and payee graphs all update afterwards. The first week is burn-in and excluded from training."),
+      el("li", null, el("b", null, "Delayed, honest labels. "), "Fraud reports reach the reputation counters hours late, count for 7 days, and a complaint about an authorised scam taints the payee but never the victim's own phone."),
       el("li", null, el("b", null, "Exact explanations. "), "The model is a boosted additive model, so each feature's contribution is the model's own arithmetic. There is no surrogate approximation."),
-      el("li", null, el("b", null, "Cost-aware decisions. "), "Approve, step-up and decline are chosen per transaction by expected cost. Rules can only escalate a decision."),
-      el("li", null, el("b", null, "Honest limits. "), "All data is synthetic, so these numbers show the engineering, not real-world performance. Session hijacks on the victim's own device are only partly detectable, and shared public devices look like mule rings. Both rows appear in the tables above rather than being tuned away."))))
+      el("li", null, el("b", null, "Cost-aware, rail-aware decisions. "), "Approve, step-up and decline are chosen per payment by expected cost. Rails that earn no margin (UPI to people, IMPS, ATM) are cheaper to decline; for them the cost is mostly goodwill. Rules can only escalate."),
+      el("li", null, el("b", null, "Step-up is not a silver bullet. "), "The policy assumes 8% of fraudsters pass an OTP challenge. In the simulator a SIM-swapper receives the OTP, a vished customer reads it out and a scammed customer approves it themselves, so those attacks pass 45% to 60% of the time. Stopping them takes friction that targets the scam: first-payee warnings, cooling-off periods and screen-share blocking."),
+      el("li", null, el("b", null, "Honest limits. "), "All data is synthetic, so these numbers show the engineering, not real-world performance. Pure social-engineering cases with no screen-share are only partly detectable, and shared kiosk phones look like mule rings. The SIM-change signal assumes telecom data that only some banks receive, and the simulator reflects that."))))
   );
   const pts = r.pr.rec.map((x, i) => [x, r.pr.prec[i]]);
   xyChart(pc, { title: "pr", xr: [0, 1], yr: [0, 1], xt: [0, .25, .5, .75, 1], yt: [0, .25, .5, .75, 1], xf: v => pct(v, 0), yf: v => pct(v, 0), xl: "Recall", yl: "Precision", lines: [{ name: "Held-out", color: "#2b47ff", pts }],
