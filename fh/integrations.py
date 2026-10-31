@@ -95,8 +95,10 @@ class IpIntel:
         return bool(self.token)
 
     def _http(self, ip):
-        u = "https://ipinfo.io/%s/json?token=%s" % (urllib.parse.quote(ip, safe=""), urllib.parse.quote(self.token, safe=""))
-        with urllib.request.urlopen(urllib.request.Request(u, headers={"Accept": "application/json"}), timeout=1.2) as r:
+        # IPinfo Lite (the free plan) answers on api.ipinfo.io/lite: country + network owner, no city. Paid plans add city and privacy.
+        # PAID=1 switches to the full endpoint. Bearer header keeps the token out of URLs and logs.
+        u = ("https://ipinfo.io/%s/json" if os.environ.get("IPINFO_PAID") == "1" else "https://api.ipinfo.io/lite/%s") % urllib.parse.quote(ip, safe="")
+        with urllib.request.urlopen(urllib.request.Request(u, headers={"Accept": "application/json", "Authorization": "Bearer " + self.token}), timeout=1.2) as r:
             return json.loads(r.read(20000))
 
     @staticmethod
@@ -137,6 +139,8 @@ class IpIntel:
             pass
         pv = d.get("privacy") if isinstance(d.get("privacy"), dict) else {}
         org = str(d.get("org") or d.get("as_name") or "")
+        if not d.get("country") or len(str(d.get("country"))) > 2:      # Lite returns country_code + a country name
+            d = dict(d, country=d.get("country_code") or d.get("country") or "")
         anon = any(pv.get(k) for k in ("vpn", "proxy", "tor", "relay", "hosting")) or any(w in org.lower() for w in HOSTING)
         city = d.get("city") or ""
         return dict(city=CITY_TO_CANON.get(city.lower(), city), lat=lat, lon=lon, cty=d.get("country") or "", org=org, anon=anon,

@@ -158,7 +158,7 @@ async def score(t: Tx):
     return await _decide(t.model_dump(), "api")
 
 
-async def _decide(x, src):
+async def _decide(x, src, neutral=False):
     """One code path for every entry point (REST, webhook, load test): resolve location, score, guard, audit, alert."""
     commit = x.pop("commit", True)
     x["pers"] = bool(x["pers"]) if x.get("pers") is not None else x["cat"] in PERS_CATS
@@ -173,8 +173,11 @@ async def _decide(x, src):
     c = next((c for c in CITY if c[0] == x.get("city")), None)
     if c:
         x["lat"], x["lon"], x["cty"] = x.get("lat") or c[1], x.get("lon") or c[2], x.get("cty") or c[3]
+    if (x.get("lat") is None or x.get("lon") is None or not x.get("cty")) and neutral:
+        c = CITY[0]                                  # webhook without usable location: a neutral fixed place, so geo signals stay quiet
+        x["city"], x["lat"], x["lon"], x["cty"] = c[0], c[1], c[2], c[3]
     if x.get("lat") is None or x.get("lon") is None or not x.get("cty"):
-        raise HTTPException(422, "give a known city or lat/lon/cty (or an ip, with IPINFO_TOKEN set)")
+        raise HTTPException(422, "give a known city or lat/lon/cty (or an ip, with a paid IPINFO_TOKEN plan that returns cities)")
     x["city"] = x.get("city") or ""
     x["lab"], x["typ"] = 0, src
     res = S["eng"].score(x, commit=False)
@@ -474,18 +477,14 @@ async def _hook(ev):
         S["hook"]["ignored"] += 1
         return dict(ok=True, ignored=why)
     ref, status, event, method = tx.pop("ref"), tx.pop("status"), tx.pop("event"), tx.pop("method")
-    if not tx.get("city") and not tx.get("ip"):
-        tx["city"] = "Mumbai"            # no location context supplied: geo signals are neutral, and the response says so
-        neutral = True
-    else:
-        neutral = False
-    res = await _decide(dict(tx, coll=False, rat=False, commit=True), "razorpay")
+    neutral = not tx.get("city")
+    res = await _decide(dict(tx, coll=False, rat=False, commit=True), "razorpay", neutral=True)
     _wire(res, ref, method, event)
     S["hook"]["ok"] += 1
     bc({"t": "wire", "d": WIRE[-1]})
     return dict(ok=True, payment=ref, decision=res["dname"], risk=res["score"], reasons=[h["code"] for h in res["hits"]],
                 action={0: "capture", 1: "hold for step-up / manual review", 2: "refuse / refund"}[res["dec"]],
-                location="not supplied (neutral)" if neutral else "from notes.ip / notes.city")
+                location="neutral (no city supplied; IP gives country/network only on the free plan)" if neutral else "from notes.city")
 
 
 @app.post("/api/webhook/razorpay")

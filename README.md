@@ -36,7 +36,7 @@ Everything is OFF until its environment variable is set (see `.env.example`); no
 | Integration | Variable | What it does |
 |---|---|---|
 | Razorpay webhook | `RAZORPAY_WEBHOOK_SECRET` | `POST /api/webhook/razorpay` accepts `payment.authorized/captured/failed` only with a valid HMAC-SHA256 signature, hashes phone/email into a pseudonymous id, scores it, and answers with `capture` / `hold for step-up` / `refuse`. Use **test mode**. |
-| IP intelligence | `IPINFO_TOKEN` | Real payer IP becomes a real city for the impossible-travel check. VPN, proxy or data-centre networks on payments of Rs 10,000+ escalate to step-up (`ANON_NETWORK`, escalate-only like every rule). Cached, 1.2 s timeout, fails open. |
+| IP intelligence | `IPINFO_TOKEN` | Free IPinfo Lite gives country + network owner (no city), enough to catch data-centre/VPN-hosted networks; a paid plan (`IPINFO_PAID=1`) adds city for the impossible-travel check. VPN, proxy or data-centre networks on payments of Rs 10,000+ escalate to step-up (`ANON_NETWORK`, escalate-only like every rule). Cached, 1.2 s timeout, fails open. |
 | Alerts | `TELEGRAM_BOT_TOKEN`+`TELEGRAM_CHAT_ID`, or `SLACK_WEBHOOK_URL` | Every step-up and decline is pushed with the reason. Background thread, rate limited, secrets never echoed. |
 | Load test | none | `POST /api/loadtest` times the engine on an isolated copy; `python tools/loadtest.py http://host --n 2000` measures real HTTP. |
 

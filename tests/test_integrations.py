@@ -94,3 +94,15 @@ def test_notifier_rate_limit_secrets_and_failures(monkeypatch):
 def test_loadtest_endpoint(client):
     r = client.post("/api/loadtest?n=300").json()
     assert r["n"] > 100 and r["p50_us"] > 0 and r["p99_us"] >= r["p50_us"] and r["per_sec"] > 0
+
+
+def test_lite_plan_response_gives_network_not_city(client, monkeypatch):
+    from fh import api
+    lite = {"ip": "13.233.1.1", "asn": "AS16509", "as_name": "Amazon.com, Inc.", "country_code": "IN", "country": "India"}
+    g = itg.IpIntel.parse(lite)
+    assert g["anon"] and g["lat"] is None and g["cty"] == "IN"
+    monkeypatch.setattr(api.S["ip"], "token", "t"); monkeypatch.setattr(api.S["ip"], "fetch", lambda ip: lite)
+    monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "k")
+    e = ev(40000, ip="13.233.1.1")           # an IP but no city: must not 422
+    r = client.post("/api/webhook/razorpay/replay", json=e)
+    assert r.status_code == 200 and r.json()["ok"]
