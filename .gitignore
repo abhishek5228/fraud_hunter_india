@@ -9,3 +9,4 @@ samples/
 artifacts_hard/
 
 .env
+artifacts/psi.key

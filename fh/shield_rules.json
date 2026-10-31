@@ -1,61 +1,165 @@
 {
  "version": 1,
- "levels": {"danger": 60, "caution": 25},
+ "levels": {
+  "danger": 60,
+  "caution": 25
+ },
  "rules": [
-  {"id": "ask_secret", "w": 45, "re": "(share|send|tell|give|read out|bata|batao|bhej|bhejo|dena|dijiye|de do).{0,25}(otp|upi ?pin|cvv|mpin|\\bpin\\b)|(otp|upi ?pin|cvv|mpin).{0,25}(share|send|tell|bata|batao|bhej|bhejo|dena|dijiye)",
+  {
+   "id": "ask_secret",
+   "w": 45,
+   "re": "(share|send|tell|give|read out|bata|batao|bhej|bhejo|dena|dijiye|de do).{0,25}(otp|upi ?pin|cvv|mpin|\\bpin\\b)|(otp|upi ?pin|cvv|mpin).{0,25}(share|send|tell|bata|batao|bhej|bhejo|dena|dijiye)",
    "en": "Asks you to share an OTP, PIN or CVV. No bank, UPI app or government office ever asks for these.",
-   "hi": "OTP, PIN या CVV मांग रहा है। कोई बैंक, UPI ऐप या सरकारी दफ़्तर ये कभी नहीं मांगता।"},
-  {"id": "pin_to_receive", "w": 50, "re": "(enter|daal|dalo|dale|put|type).{0,25}pin.{0,40}(receive|credit|refund|paisa aayega|money)|(receive|credit|refund|paisa aayega).{0,40}(enter|daal|dalo|put|type).{0,15}pin",
+   "hi": "OTP, PIN या CVV मांग रहा है। कोई बैंक, UPI ऐप या सरकारी दफ़्तर ये कभी नहीं मांगता।"
+  },
+  {
+   "id": "pin_to_receive",
+   "w": 50,
+   "re": "(enter|daal|dalo|dale|put|type).{0,25}pin.{0,40}(receive|credit|refund|paisa aayega|money)|(receive|credit|refund|paisa aayega).{0,40}(enter|daal|dalo|put|type).{0,15}pin",
    "en": "Says to enter your PIN to RECEIVE money. A PIN is only ever needed to SEND money.",
-   "hi": "पैसे पाने के लिए PIN डालने को कह रहा है। PIN सिर्फ़ पैसे भेजते समय लगता है।"},
-  {"id": "collect_approve", "w": 40, "re": "(approve|accept|confirm).{0,25}(collect|request|mandate)",
+   "hi": "पैसे पाने के लिए PIN डालने को कह रहा है। PIN सिर्फ़ पैसे भेजते समय लगता है।"
+  },
+  {
+   "id": "collect_approve",
+   "w": 40,
+   "re": "(approve|accept|confirm).{0,25}(collect|request|mandate)",
    "en": "Asks you to approve a collect or payment request. Approving one sends money out of your account.",
-   "hi": "कलेक्ट/पेमेंट रिक्वेस्ट मंज़ूर करने को कह रहा है। मंज़ूर करने पर आपके खाते से पैसे कट जाते हैं।"},
-  {"id": "remote_app", "w": 55, "re": "anydesk|teamviewer|quick ?support|rustdesk|airdroid|screen ?shar|screen ?mirror|remote (access|support)",
+   "hi": "कलेक्ट/पेमेंट रिक्वेस्ट मंज़ूर करने को कह रहा है। मंज़ूर करने पर आपके खाते से पैसे कट जाते हैं।"
+  },
+  {
+   "id": "remote_app",
+   "w": 55,
+   "re": "anydesk|teamviewer|quick ?support|rustdesk|airdroid|screen ?shar|screen ?mirror|remote (access|support)",
    "en": "Asks you to install or use a screen-sharing app. This lets a stranger watch and control your phone.",
-   "hi": "स्क्रीन-शेयरिंग ऐप इंस्टॉल करने को कह रहा है। इससे अजनबी आपका फ़ोन देख और चला सकता है।"},
-  {"id": "apk", "w": 55, "re": "\\.apk\\b",
+   "hi": "स्क्रीन-शेयरिंग ऐप इंस्टॉल करने को कह रहा है। इससे अजनबी आपका फ़ोन देख और चला सकता है।"
+  },
+  {
+   "id": "apk",
+   "w": 55,
+   "re": "\\.apk\\b",
    "en": "Contains an APK file. Installing an app outside the Play Store or App Store is a common way phones are taken over.",
-   "hi": "APK फ़ाइल है। Play Store/App Store के बाहर से ऐप डालना फ़ोन हैक होने का आम तरीका है।"},
-  {"id": "digital_arrest", "w": 60, "re": "(cbi|\\bed\\b|police|customs|narcotics|trai|cyber ?crime|income tax).{0,70}(video call|skype|digital arrest|parcel|courier|aadhaar misuse|money laundering)|digital arrest",
+   "hi": "APK फ़ाइल है। Play Store/App Store के बाहर से ऐप डालना फ़ोन हैक होने का आम तरीका है।"
+  },
+  {
+   "id": "digital_arrest",
+   "w": 60,
+   "re": "(cbi|\\bed\\b|police|customs|narcotics|trai|cyber ?crime|income tax).{0,70}(video call|skype|digital arrest|parcel|courier|aadhaar misuse|money laundering)|digital arrest",
    "en": "Claims to be police, CBI, customs or similar and mentions a parcel, video call or arrest. 'Digital arrest' does not exist in Indian law; it is a scam.",
-   "hi": "खुद को पुलिस/CBI/कस्टम बताकर पार्सल, वीडियो कॉल या गिरफ़्तारी की बात कर रहा है। 'डिजिटल अरेस्ट' कानून में होता ही नहीं, यह ठगी है।"},
-  {"id": "threat_urgent", "w": 30, "re": "(disconnect|blocked|block ho|suspend|frozen|freeze|expire|deactivat|band ho|kat (jayega|jaayegi|jaega)|cut ho|legal action|arrest|warrant).{0,70}(today|tonight|now|immediately|within|24 ?h|aaj|abhi|raat|turant)|(today|tonight|immediately|aaj|abhi|turant).{0,70}(disconnect|blocked|block ho|suspend|freeze|expire|band ho|kat (jayega|jaayegi|jaega)|legal action|arrest)",
+   "hi": "खुद को पुलिस/CBI/कस्टम बताकर पार्सल, वीडियो कॉल या गिरफ़्तारी की बात कर रहा है। 'डिजिटल अरेस्ट' कानून में होता ही नहीं, यह ठगी है।"
+  },
+  {
+   "id": "threat_urgent",
+   "w": 30,
+   "re": "(disconnect|blocked|block ho|suspend|frozen|freeze|expire|deactivat|band ho|kat (jayega|jaayegi|jaega)|cut ho|legal action|arrest|warrant).{0,70}(today|tonight|now|immediately|within|24 ?h|aaj|abhi|raat|turant)|(today|tonight|immediately|aaj|abhi|turant).{0,70}(disconnect|blocked|block ho|suspend|freeze|expire|band ho|kat (jayega|jaayegi|jaega)|legal action|arrest)",
    "en": "Threatens something bad unless you act right now. Scammers use urgency so you do not stop to think.",
-   "hi": "अभी कुछ न किया तो नुकसान की धमकी दे रहा है। ठग जल्दबाज़ी इसलिए कराते हैं कि आप सोच न सकें।"},
-  {"id": "electricity", "w": 35, "re": "(bijli|electricity|power).{0,40}(disconnect|kat\\b|cut|overdue|not updated|update)",
+   "hi": "अभी कुछ न किया तो नुकसान की धमकी दे रहा है। ठग जल्दबाज़ी इसलिए कराते हैं कि आप सोच न सकें।"
+  },
+  {
+   "id": "electricity",
+   "w": 35,
+   "re": "(bijli|electricity|power).{0,40}(disconnect|kat\\b|cut|overdue|not updated|update)",
    "en": "An electricity-bill disconnection warning. This is one of the most common scam texts in India; check only on your electricity company's official app or website.",
-   "hi": "बिजली कनेक्शन कटने की चेतावनी। भारत में यह सबसे आम ठगी वाले संदेशों में है; सिर्फ़ बिजली कंपनी के आधिकारिक ऐप/वेबसाइट पर जांचें।"},
-  {"id": "kyc", "w": 25, "re": "\\bkyc\\b|pan (update|card)|aadhaar (update|link)|account.{0,20}(block|suspend)",
+   "hi": "बिजली कनेक्शन कटने की चेतावनी। भारत में यह सबसे आम ठगी वाले संदेशों में है; सिर्फ़ बिजली कंपनी के आधिकारिक ऐप/वेबसाइट पर जांचें।"
+  },
+  {
+   "id": "kyc",
+   "w": 25,
+   "re": "\\bkyc\\b|pan (update|card)|aadhaar (update|link)|account.{0,20}(block|suspend)",
    "en": "A KYC, PAN or Aadhaar 'update' request. Banks do not ask you to complete KYC through a link or a phone call.",
-   "hi": "KYC, PAN या आधार 'अपडेट' का संदेश। बैंक लिंक या फ़ोन कॉल से KYC नहीं करवाते।"},
-  {"id": "call_number", "w": 20, "re": "(call|contact|whatsapp|sampark).{0,30}\\b[6-9]\\d{9}\\b",
+   "hi": "KYC, PAN या आधार 'अपडेट' का संदेश। बैंक लिंक या फ़ोन कॉल से KYC नहीं करवाते।"
+  },
+  {
+   "id": "call_number",
+   "w": 20,
+   "re": "(call|contact|whatsapp|sampark).{0,30}\\b[6-9]\\d{9}\\b",
    "en": "Asks you to call a personal mobile number. Official notices point to the helpline printed on your bill or card.",
-   "hi": "किसी निजी मोबाइल नंबर पर कॉल करने को कह रहा है। असली सूचना में बिल/कार्ड पर छपा हेल्पलाइन नंबर होता है।"},
-  {"id": "prize", "w": 40, "re": "lottery|\\bkbc\\b|lucky draw|you have won|you won|jackpot|prize money|inaam",
+   "hi": "किसी निजी मोबाइल नंबर पर कॉल करने को कह रहा है। असली सूचना में बिल/कार्ड पर छपा हेल्पलाइन नंबर होता है।"
+  },
+  {
+   "id": "prize",
+   "w": 40,
+   "re": "lottery|\\bkbc\\b|lucky draw|you have won|you won|jackpot|prize money|inaam",
    "en": "A prize or lottery message. If you did not enter, you did not win.",
-   "hi": "इनाम या लॉटरी का संदेश। आपने हिस्सा नहीं लिया तो आप जीते नहीं।"},
-  {"id": "task_job", "w": 35, "re": "(part.?time|work from home|\\btask\\b|like (and )?subscribe|youtube).{0,70}(earn|income|daily|per day|commission|salary)|(earn|income|daily|per day|commission).{0,70}(part.?time|work from home|like (and )?subscribe)",
+   "hi": "इनाम या लॉटरी का संदेश। आपने हिस्सा नहीं लिया तो आप जीते नहीं।"
+  },
+  {
+   "id": "task_job",
+   "w": 35,
+   "re": "(part.?time|work from home|\\btask\\b|like (and )?subscribe|youtube).{0,70}(earn|income|daily|per day|commission|salary)|(earn|income|daily|per day|commission).{0,70}(part.?time|work from home|like (and )?subscribe)",
    "en": "A work-from-home or 'complete tasks, earn money' offer. These start small and then ask you to deposit money.",
-   "hi": "घर बैठे कमाई या 'टास्क पूरा करो, पैसे पाओ' का ऑफ़र। शुरू में छोटी रकम मिलती है, फिर पैसे जमा करवाए जाते हैं।"},
-  {"id": "short_link", "w": 30, "re": "https?://(bit\\.ly|tinyurl\\.com|t\\.co|cutt\\.ly|rb\\.gy|is\\.gd|shorturl\\.at|t\\.ly)\\S*",
+   "hi": "घर बैठे कमाई या 'टास्क पूरा करो, पैसे पाओ' का ऑफ़र। शुरू में छोटी रकम मिलती है, फिर पैसे जमा करवाए जाते हैं।"
+  },
+  {
+   "id": "short_link",
+   "w": 30,
+   "re": "https?://(bit\\.ly|tinyurl\\.com|t\\.co|cutt\\.ly|rb\\.gy|is\\.gd|shorturl\\.at|t\\.ly)\\S*",
    "en": "Uses a shortened link, which hides where it really goes.",
-   "hi": "छोटा किया हुआ लिंक है, जिससे असली पता छिप जाता है।"},
-  {"id": "bank_word_bad_tld", "w": 50, "re": "https?://[^\\s/]*(sbi|hdfc|icici|axis|paytm|phonepe|npci|rbi|uidai|incometax|kotak|pnb)[^\\s/]*\\.(xyz|top|info|online|site|click|live|shop|icu|cc|ru|vip|club|work|buzz)\\b",
+   "hi": "छोटा किया हुआ लिंक है, जिससे असली पता छिप जाता है।"
+  },
+  {
+   "id": "bank_word_bad_tld",
+   "w": 50,
+   "re": "https?://[^\\s/]*(sbi|hdfc|icici|axis|paytm|phonepe|npci|rbi|uidai|incometax|kotak|pnb)[^\\s/]*\\.(xyz|top|info|online|site|click|live|shop|icu|cc|ru|vip|club|work|buzz)\\b",
    "en": "A link that uses a bank or government name on an unusual web address ending. Type the bank's address yourself instead.",
-   "hi": "बैंक या सरकारी नाम वाला लिंक, पर अजीब वेब-एड्रेस पर। बैंक का पता खुद टाइप करके खोलें।"},
-  {"id": "official_handle", "w": 40, "re": "[a-z0-9._\\-]*(support|helpdesk|customercare|kyc|refund|helpline|official|verify|reward|cashback|bijli|electricity|police|cbi|rbi|npci|sbibank)[a-z0-9._\\-]*@[a-z]{2,}",
+   "hi": "बैंक या सरकारी नाम वाला लिंक, पर अजीब वेब-एड्रेस पर। बैंक का पता खुद टाइप करके खोलें।"
+  },
+  {
+   "id": "official_handle",
+   "w": 40,
+   "re": "[a-z0-9._\\-]*(support|helpdesk|customercare|kyc|refund|helpline|official|verify|reward|cashback|bijli|electricity|police|cbi|rbi|npci|sbibank)[a-z0-9._\\-]*@[a-z]{2,}",
    "en": "A payment handle that imitates an official name (support, refund, KYC, a bank). Real organisations do not collect money on personal-looking UPI handles.",
-   "hi": "ऐसा UPI हैंडल जो आधिकारिक नाम की नकल करता है (support, refund, KYC, बैंक)। असली संस्थाएं निजी जैसे UPI हैंडल पर पैसे नहीं लेतीं।"}
+   "hi": "ऐसा UPI हैंडल जो आधिकारिक नाम की नकल करता है (support, refund, KYC, बैंक)। असली संस्थाएं निजी जैसे UPI हैंडल पर पैसे नहीं लेतीं।"
+  }
  ],
- "network": {"fan_in": {"min": 3, "w": 35, "en": "%d other people paid this payee for the first time this week. Mule accounts collect from many unrelated senders.", "hi": "इस हफ़्ते %d और लोगों ने इस खाते को पहली बार पैसे भेजे। म्यूल खाते कई अनजान लोगों से पैसे लेते हैं।"},
-             "complaints": {"min": 1, "w": 60, "en": "This payee is linked to %d recent fraud complaint(s) in this system.", "hi": "इस खाते के खिलाफ़ इस सिस्टम में %d हालिया ठगी की शिकायत(ें) हैं।"}},
+ "network": {
+  "fan_in": {
+   "min": 3,
+   "w": 35,
+   "en": "%d other people paid this payee for the first time this week. Mule accounts collect from many unrelated senders.",
+   "hi": "इस हफ़्ते %d और लोगों ने इस खाते को पहली बार पैसे भेजे। म्यूल खाते कई अनजान लोगों से पैसे लेते हैं।"
+  },
+  "complaints": {
+   "min": 1,
+   "w": 60,
+   "en": "This payee is linked to %d recent fraud complaint(s) in this system.",
+   "hi": "इस खाते के खिलाफ़ इस सिस्टम में %d हालिया ठगी की शिकायत(ें) हैं।"
+  },
+  "owner_mismatch": {
+   "w": 45,
+   "en": "The name registered to this payment handle ('%s') does not match the name shown on the QR or request ('%s').",
+   "hi": "इस पेमेंट हैंडल पर दर्ज नाम ('%s'), QR या रिक्वेस्ट में दिखे नाम ('%s') से नहीं मिलता।"
+  }
+ },
  "actions": {
-  "danger": {"en": ["Do not pay, do not share any OTP or PIN, and do not install anything.", "If money already left: call 1930 now and file at cybercrime.gov.in. Speed matters most in the first hour.", "Tell your bank to freeze the transaction."],
-             "hi": ["पैसे न भेजें, OTP/PIN न बताएं, कोई ऐप इंस्टॉल न करें।", "पैसे कट गए हों तो तुरंत 1930 पर कॉल करें और cybercrime.gov.in पर शिकायत करें। पहला घंटा सबसे ज़रूरी है।", "अपने बैंक से ट्रांज़ैक्शन रुकवाएं।"]},
-  "caution": {"en": ["Pause. Verify using the number or app on your bank card or official website, not the one in this message.", "If unsure, ask someone you trust before paying."],
-              "hi": ["रुकिए। बैंक कार्ड/आधिकारिक वेबसाइट पर दिए नंबर या ऐप से जांचें, इस संदेश के नंबर से नहीं।", "भरोसा न हो तो पैसे भेजने से पहले किसी जानकार से पूछें।"]},
-  "none": {"en": ["No known scam pattern found. That is not a guarantee: this checks wording and structure, and cannot confirm who owns a payment handle."],
-           "hi": ["कोई जानी-पहचानी ठगी का पैटर्न नहीं मिला। यह गारंटी नहीं है: यह सिर्फ़ शब्द और बनावट जांचता है, हैंडल का मालिक कौन है यह नहीं बता सकता।"]}
+  "danger": {
+   "en": [
+    "Do not pay, do not share any OTP or PIN, and do not install anything.",
+    "If money already left: call 1930 now and file at cybercrime.gov.in. Speed matters most in the first hour.",
+    "Tell your bank to freeze the transaction."
+   ],
+   "hi": [
+    "पैसे न भेजें, OTP/PIN न बताएं, कोई ऐप इंस्टॉल न करें।",
+    "पैसे कट गए हों तो तुरंत 1930 पर कॉल करें और cybercrime.gov.in पर शिकायत करें। पहला घंटा सबसे ज़रूरी है।",
+    "अपने बैंक से ट्रांज़ैक्शन रुकवाएं।"
+   ]
+  },
+  "caution": {
+   "en": [
+    "Pause. Verify using the number or app on your bank card or official website, not the one in this message.",
+    "If unsure, ask someone you trust before paying."
+   ],
+   "hi": [
+    "रुकिए। बैंक कार्ड/आधिकारिक वेबसाइट पर दिए नंबर या ऐप से जांचें, इस संदेश के नंबर से नहीं।",
+    "भरोसा न हो तो पैसे भेजने से पहले किसी जानकार से पूछें।"
+   ]
+  },
+  "none": {
+   "en": [
+    "No known scam pattern found. That is not a guarantee: this checks wording and structure, and cannot confirm who owns a payment handle."
+   ],
+   "hi": [
+    "कोई जानी-पहचानी ठगी का पैटर्न नहीं मिला। यह गारंटी नहीं है: यह सिर्फ़ शब्द और बनावट जांचता है, हैंडल का मालिक कौन है यह नहीं बता सकता।"
+   ]
+  }
  }
 }

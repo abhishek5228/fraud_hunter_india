@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import shield, graph as mulegraph, copilot, fairness, consortium, integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
+from . import psi, shield, graph as mulegraph, copilot, fairness, consortium, integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -596,12 +596,46 @@ async def shield_ep(b: Sh, req: Request):
         bad = st.nbad("m:" + h, now)
         if fan or bad:
             net = dict(fan_in=max(fan, (net or {}).get("fan_in", 0)), complaints=max(bad, (net or {}).get("complaints", 0)))
-    return dict(shield.check(b.text, net), network=net)
+    hs = shield.handles(shield.expand(b.text))
+    owner = await run_in_threadpool(shield.owner_lookup, hs[0]) if hs and os.environ.get("RAZORPAY_KEY_ID") else None
+    return dict(shield.check(b.text, net, owner), network=net)
+
+
+class Rp(BaseModel):
+    handle: str
+
+
+@app.post("/api/shield/report", dependencies=[Depends(guard)])
+async def shield_report(r: Rp):
+    """A confirmed complaint about a payment handle (guarded: an open endpoint would let anyone smear a handle). Feeds the payee reputation."""
+    if not shield.VPA.fullmatch(r.handle.strip()):
+        raise HTTPException(422, "not a UPI handle (name@bank)")
+    h = r.handle.strip()
+    S["eng"].st.bad["m:" + h].append(S["sim"].clk)
+    S["aud"].log("shield_report", detail=dict(handle=mulegraph.mask(h)), model=S["ver"])
+    return dict(ok=True, complaints=S["eng"].st.nbad("m:" + h, S["sim"].clk))
 
 
 @app.get("/api/graph")
 async def graph_ep(top: int = 10):
     return mulegraph.build(S["eng"].st, S["sim"].clk, top=max(1, min(top, 30)))
+
+
+class Vd(BaseModel):
+    id: str
+    verdict: str          # mule | legit
+
+
+@app.post("/api/graph/verdict", dependencies=[Depends(guard)])
+async def graph_verdict(v: Vd):
+    try:
+        pay = mulegraph.verdict(S["eng"].st, v.id, v.verdict, S["sim"].clk)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if pay is None:
+        raise HTTPException(404, "that hub has aged out of the last week")
+    S["aud"].log("graph_verdict", v.id, detail=dict(verdict=v.verdict, payee=mulegraph.mask(pay)), model=S["ver"])
+    return dict(ok=True, verdict=v.verdict)
 
 
 @app.get("/api/case/{cid}/brief", dependencies=[Depends(guard)])
@@ -628,7 +662,9 @@ async def fairness_ep(refresh: bool = False):
 @app.get("/api/consortium")
 async def consortium_status():
     st = S["eng"].st
-    return dict(on=bool(consortium.key()), imported=len(getattr(st, "cons", {})), banks=sorted({v["bank"] for v in getattr(st, "cons", {}).values()}))
+    psi_banks = {v["bank"] for v in getattr(st, "cons_plain", {}).values()}
+    return dict(on=bool(consortium.key()), imported=len(getattr(st, "cons", {})), banks=sorted({v["bank"] for v in getattr(st, "cons", {}).values()} | psi_banks),
+                psi=dict(matched=len(getattr(st, "cons_plain", {})), peers=[u for u in os.environ.get("FH_PSI_PEERS", "").split(",") if u.strip()]))
 
 
 @app.post("/api/consortium/export", dependencies=[Depends(guard)])
@@ -647,3 +683,69 @@ async def consortium_import(req: Request):
         raise HTTPException(422 if consortium.key() else 503, str(e))
     S["aud"].log("consortium_import", detail=dict(new=new), model=S["ver"])
     return dict(ok=True, new=new, total=len(S["eng"].st.cons))
+
+
+# ---------------------------------------------------------------- private set intersection (no shared key)
+PSI_USE = []
+
+
+def _party():
+    if "psi" not in S:
+        S["psi"] = psi.Party.load(os.path.join(train.ART, "psi.key"))
+    return S["psi"]
+
+
+@app.get("/api/psi/set", dependencies=[Depends(guard)])
+async def psi_set(bank: str = "this-bank"):
+    """Our flagged payees, blinded with our secret and shuffled. Reveals nothing to someone who does not already hold the same payee."""
+    items = consortium.evidence(S["eng"].st, S["sim"].clk)
+    return dict(bank=bank[:40], ts=int(time.time()), n=len(items), set=await run_in_threadpool(_party().published_set, items))
+
+
+@app.post("/api/psi/reblind", dependencies=[Depends(guard)])
+async def psi_reblind(req: Request):
+    """Blind a peer's questions with our secret. Budget: 6 calls per hour, 10,000 values each, every call audited."""
+    now = time.time()
+    PSI_USE[:] = [t for t in PSI_USE if now - t < 3600]
+    if len(PSI_USE) >= 6:
+        raise HTTPException(429, "query budget used up (6 per hour); this limits how many guessed payees a peer can test")
+    body = await req.json()
+    try:
+        out = await run_in_threadpool(_party().reblind, body.get("q", []))
+    except (ValueError, TypeError, AttributeError) as e:
+        raise HTTPException(422, str(e))
+    PSI_USE.append(now)
+    S["aud"].log("psi_reblind", detail=dict(n=len(out)), model=S["ver"])
+    return dict(r=out)
+
+
+class PsiSync(BaseModel):
+    peer: str
+    bank: str = "peer"
+    key: str | None = None
+
+
+@app.post("/api/psi/sync", dependencies=[Depends(guard)])
+async def psi_sync(b: PsiSync):
+    """Ask a peer bank which of OUR payees it has flagged. The peer must be listed in FH_PSI_PEERS (stops this being used to make the server fetch arbitrary URLs)."""
+    import urllib.request
+    allowed = [u.strip().rstrip("/") for u in os.environ.get("FH_PSI_PEERS", "").split(",") if u.strip()]
+    peer = b.peer.rstrip("/")
+    if peer not in allowed:
+        raise HTTPException(403, "peer is not listed in FH_PSI_PEERS")
+    hdr_ = {"content-type": "application/json", **({"x-api-key": b.key or os.environ.get("FH_PSI_PEER_KEY", "")} if (b.key or os.environ.get("FH_PSI_PEER_KEY")) else {})}
+
+    def call(path, body=None):
+        r = urllib.request.Request(peer + path, None if body is None else json.dumps(body).encode(), hdr_)
+        with urllib.request.urlopen(r, timeout=30) as resp:
+            return json.loads(resp.read(50_000_000))
+    st = S["eng"].st
+    mine = list(st.pu)[:psi.MAX_QUERY]
+    try:
+        got = await run_in_threadpool(lambda: psi.sync(_party(), mine, lambda: call("/api/psi/set")["set"], lambda q: call("/api/psi/reblind", {"q": q})["r"]))
+    except (OSError, ValueError, KeyError) as e:
+        raise HTTPException(502, "peer sync failed: %s" % type(e).__name__)
+    for m in got:
+        st.cons_plain[m] = dict(bank=b.bank[:40], ts=int(time.time()))
+    S["aud"].log("psi_sync", detail=dict(asked=len(mine), matched=len(got), peer=b.bank[:40]), model=S["ver"])
+    return dict(ok=True, asked=len(mine), matched=len(got), total=len(st.cons_plain))

@@ -37,7 +37,7 @@ def check(x, r, st):
             hits.append((BLOCK, "SIM_SWAP_DRAIN", "New device %.0f h after a SIM change, large transfer to a first-time payee" % r["sim"]))
         elif x["amt"] >= 5000:
             hits.append((STEP, "SIM_CHANGE_NEW_DEVICE", "New device %.0f h after a SIM change, %s" % (r["sim"], inr(x["amt"], 0))))
-    if pers and nmer and r["fan"] >= 3:
+    if pers and nmer and r["fan"] >= 3 and x["mid"] not in getattr(st, "allow", ()):
         hits.append((BLOCK if r["fan"] >= 6 else STEP, "PAYEE_FAN_IN", "First-time payee already paid by %d other customers this week" % r["fan"]))
     if pers and r["lim"]:
         hits.append((STEP, "LIMIT_STRUCTURING", "%s sits just under a payment limit" % inr(x["amt"], 0)))
@@ -50,6 +50,9 @@ def check(x, r, st):
     P = st.u.get(x["uid"])
     if (P is None or P.n < 4) and x["amt"] >= 100_000:       # the model never saw big money from a stranger; do not let it extrapolate to "safe"
         hits.append((STEP, "NEW_CUSTOMER_HIGH_VALUE", "%s from a customer with almost no history" % inr(x["amt"], 0)))
+    cp = getattr(st, "cons_plain", None)
+    if cp and pers and x["mid"] in cp:
+        hits.append((BLOCK, "CONSORTIUM_MULE", "Payee confirmed as flagged by %s through private set intersection (no customer data shared)" % cp[x["mid"]]["bank"]))
     cons = getattr(st, "cons", None)
     if cons and pers:                                    # a payee another member bank has strong evidence against (matched by keyed hash only)
         from . import consortium

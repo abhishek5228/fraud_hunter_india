@@ -461,6 +461,33 @@
    }
   },
   {
+   "name": "POST /api/graph/verdict",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/graph/verdict",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "graph",
+      "verdict"
+     ]
+    }
+   }
+  },
+  {
    "name": "GET /api/health",
    "request": {
     "method": "GET",
@@ -670,6 +697,87 @@
    }
   },
   {
+   "name": "POST /api/psi/reblind",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/psi/reblind",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "psi",
+      "reblind"
+     ]
+    }
+   }
+  },
+  {
+   "name": "GET /api/psi/set",
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/psi/set",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "psi",
+      "set"
+     ]
+    }
+   }
+  },
+  {
+   "name": "POST /api/psi/sync",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/psi/sync",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "psi",
+      "sync"
+     ]
+    }
+   }
+  },
+  {
    "name": "GET /api/queue",
    "request": {
     "method": "GET",
@@ -806,6 +914,33 @@
     "body": {
      "mode": "raw",
      "raw": "{\n  \"text\": \"Your electricity will be cut tonight, call 9876543210 immediately\"\n}"
+    }
+   }
+  },
+  {
+   "name": "POST /api/shield/report",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "x-api-key",
+      "value": "{{api_key}}"
+     },
+     {
+      "key": "content-type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base}}/api/shield/report",
+     "host": [
+      "{{base}}"
+     ],
+     "path": [
+      "api",
+      "shield",
+      "report"
+     ]
     }
    }
   },

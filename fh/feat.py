@@ -49,7 +49,15 @@ class Store:
         s.pf = set()               # every payee ever seen on the platform
         s.bad = defaultdict(deque)  # 'd:dev' / 'i:ip' / 'm:payee' -> report times (7-day window, avoids drift)
         s.blk = set()              # manual blocklist keys: 'u:' 'd:' 'i:'
+        s.allow = set()            # payees an analyst ruled legitimate (hidden from the mule graph, exempt from the first-time fan-in rule)
+        s.cons_plain = {}          # payees a PSI peer confirmed as flagged (we only ever learn matches for payees we already hold)
         s.cons = {}                # consortium: keyed hash of a payee another bank flagged -> {bank, n, ts}
+
+    def __setstate__(s, d):
+        """Snapshots written by an older version lack newer fields; give them empty defaults instead of crashing after a restart."""
+        s.__dict__.update(d)
+        for k, make in (("allow", set), ("cons_plain", dict), ("cons", dict)):
+            s.__dict__.setdefault(k, make())
 
     # ---------------------------------------------------------------- features
     def feats(s, x):

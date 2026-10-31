@@ -163,7 +163,7 @@ def test_fairness_report_shape_and_flags_are_defined(client):
     assert r["legit_n"] > 1000 and 0 < r["base"] < 0.2 and any(s["group"] == "Rail" for s in r["segments"])
     for s in r["segments"]:
         if s["flag"]:
-            assert s["n"] >= r["min_n"] and s["ratio"] >= 1.5 and s["lo"] > r["base"]   # 99% bound is stricter than the 95% one shown
+            assert s["n"] >= r["min_n"] and s["ratio"] >= 1.5 and s["p"] < 0.05
 
 
 # ---- sdk

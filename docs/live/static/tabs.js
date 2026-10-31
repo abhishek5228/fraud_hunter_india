@@ -52,7 +52,7 @@ async function loadMules() {
   if (!cl.find(c => c.id === muSel)) muSel = cl[0].id;
   $("#mu-list").replaceChildren(...cl.map(c => el("div", { class: "hub" + (c.id === muSel ? " sel" : ""), tabindex: 0, role: "button", onclick: () => { muSel = c.id; loadMules(); }, onkeydown: e => { if (e.key === "Enter") { muSel = c.id; loadMules(); } } },
     el("b", { class: "mono" }, c.payee), el("span", { class: "tag " + (c.level === "high" ? "d2" : "d1") }, c.level === "high" ? "High" : "Watch"),
-    el("div", { class: "sub" }, c.senders + " senders this week · " + c.complaints + " complaint(s)" + (c.devices.length ? " · " + c.devices.length + " shared device(s)" : "")))));
+    el("div", { class: "sub" }, "confidence " + c.confidence + "/100 · " + c.senders + " senders · " + c.complaints + " complaint(s)" + (c.devices.length ? " · " + c.devices.length + " shared device(s)" : "")))));
   drawHub(cl.find(c => c.id === muSel));
 }
 function drawHub(c) {
@@ -70,15 +70,22 @@ function drawHub(c) {
   $("#mu-svg").replaceChildren(svg);
   $("#mu-title").textContent = "Who paid " + c.payee;
   $("#mu-why").replaceChildren(el("div", null, el("b", null, "Why it is flagged: "), c.why.join(" · ")), el("div", { class: "note" }, "Amber lines: that sender had never paid this payee before. Red dashed lines: two senders share a device."),
-    el("div", { class: "note" }, "Payee names are masked. A hub is a lead for an analyst, not proof: a charity, a landlord or a popular seller can also look like this."));
+    ...(c.hints || []).map(h => el("div", { class: "note", style: "color:#9a6a00" }, "Note: " + h)),
+    el("div", { class: "note" }, "Confidence adds up four independent kinds of evidence (first-time senders, complaints, shared devices, arrival in a burst). It is still a lead, not proof: a charity, a landlord or a popular seller can look like this. Your ruling below is recorded in the audit log."),
+    el("div", { class: "act", style: "padding:8px 0 0" }, el("button", { class: "btn bad", onclick: ev => rule(ev, c, "mule") }, "Confirm mule: block this payee"), el("button", { class: "btn", onclick: ev => rule(ev, c, "legit") }, "Known legitimate: stop flagging it"), el("span", { class: "note", id: "mu-msg", role: "status" })));
+}
+async function rule(ev, c, v) {
+  ev.target.disabled = true;
+  try { await api("/api/graph/verdict", { id: c.id, verdict: v }); $("#mu-msg").textContent = v === "mule" ? "Recorded. The engine now treats this payee as reported." : "Recorded. It is hidden here and the first-time fan-in rule no longer fires on it."; setTimeout(loadMules, 900); }
+  catch (e) { ev.target.disabled = false; $("#mu-msg").textContent = e.message; }
 }
 async function consCard() {
   const host = $("#mu-cons"); let st;
   try { st = await api("/api/consortium"); } catch (e) { host.replaceChildren(el("div", { class: "note" }, "Needs the live backend.")); return; }
   const msg = el("div", { class: "note", role: "status", style: "margin-top:6px" }), ta = el("textarea", { rows: 3, style: "width:100%;border:1px solid var(--line);border-radius:8px;padding:6px;font:11px var(--mono)", placeholder: "Paste a feed from another bank" });
   host.replaceChildren(
-    el("div", { class: "note", style: "line-height:1.55" }, "Banks swap keyed hashes of payees they have evidence against, never customers, amounts or names. A payee another bank has flagged is stopped here before any customer has lost money. Needs a shared key (FH_CONSORTIUM_KEY)."),
-    el("div", { class: "note", style: "margin:6px 0" }, st.on ? "Key set. " + st.imported + " hash(es) imported from " + (st.banks.join(", ") || "no one yet") + "." : "Off: set FH_CONSORTIUM_KEY on the server."),
+    el("div", { class: "note", style: "line-height:1.55" }, "Two ways for banks to warn each other without sharing customers. Keyed hashes (shared key; simple, but anyone with the key can test guesses) or private set intersection: each bank keeps its own secret and only learns which of ITS OWN payees the other bank flagged. Either way a flagged payee is stopped here before a customer loses money."),
+    el("div", { class: "note", style: "margin:6px 0" }, "Private set intersection: " + (st.psi.peers.length ? st.psi.peers.length + " peer(s) configured, " : "no peers configured (FH_PSI_PEERS), ") + st.psi.matched + " payee(s) confirmed. "), el("div", { class: "note", style: "margin:6px 0" }, st.on ? "Key set. " + st.imported + " hash(es) imported from " + (st.banks.join(", ") || "no one yet") + "." : "Off: set FH_CONSORTIUM_KEY on the server."),
     el("button", { class: "btn sm", disabled: !st.on, onclick: async () => { try { const f = await api("/api/consortium/export?bank=this-bank", {}); const a = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(f, null, 1)], { type: "application/json" })), download: "mule-feed.json" }); a.click(); msg.textContent = "Exported " + f.items.length + " hash(es)."; } catch (e) { msg.textContent = e.message; } } }, "Export my feed"),
     ta, el("button", { class: "btn sm", style: "margin-top:6px", disabled: !st.on, onclick: async () => { try { const r = await api("/api/consortium/import", JSON.parse(ta.value)); msg.textContent = "Imported " + r.new + " new hash(es); " + r.total + " in total."; consCard(); } catch (e) { msg.textContent = e.message; } } }, "Import a feed"), msg);
 }
@@ -93,7 +100,7 @@ async function fairCard(out) {
     el("td", { class: "r" }, s.n.toLocaleString("en-IN")),
     el("td", { style: "min-width:200px" }, s.touched == null ? "–" : el("div", { style: "display:flex;gap:8px;align-items:center" }, el("div", { class: "hb", style: "flex:1;position:relative" }, el("i", { style: `width:${100 * s.touched / mx}%;background:${s.flag ? "#cc2f46" : "#2b47ff"}` })), el("span", { class: "mono" }, pct(s.touched, 1) + " (" + pct(s.lo, 1) + "–" + pct(s.hi, 1) + ")"))),
     el("td", { class: "r" }, s.ratio == null ? "–" : s.ratio.toFixed(2) + "×"), el("td", { class: "r" }, s.caught == null ? "–" : pct(s.caught, 0))));
-  host.lastChild.replaceChildren(el("div", { class: "note", style: "margin-bottom:8px;line-height:1.55" }, "Average: " + pct(f.base, 1) + " of " + f.legit_n.toLocaleString("en-IN") + " legitimate payments were challenged or declined. " + (f.flagged.length ? f.flagged.length + " group(s) are flagged (at least 1.5× average, 99% interval clear of average)." : "No group is flagged.") + " " + f.note),
+  host.lastChild.replaceChildren(el("div", { class: "note", style: "margin-bottom:8px;line-height:1.55" }, "Average: " + pct(f.base, 1) + " of " + f.legit_n.toLocaleString("en-IN") + " legitimate payments were challenged or declined. " + (f.flagged.length ? f.flagged.length + " group(s) are flagged (at least 1.5× average and still significant after correcting for all the groups compared)." : "No group is flagged.") + " " + f.note),
     el("table", { class: "t" }, el("thead", null, el("tr", null, el("th", null, "Group"), el("th", null, "Segment"), el("th", { class: "r" }, "Legit payments"), el("th", null, "Challenged or declined (95% interval)"), el("th", { class: "r" }, "vs average"), el("th", { class: "r" }, "Fraud caught"))), el("tbody", null, rows)),
     el("div", { class: "note", style: "margin-top:8px" }, "Greyed rows have too few payments to judge. The simulator has no age, gender or religion, and a real system must not use them as inputs; auditing for them needs those fields joined in afterwards, with a lawful basis."));
 }

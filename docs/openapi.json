@@ -840,6 +840,43 @@
     }
    }
   },
+  "/api/shield/report": {
+   "post": {
+    "summary": "Shield Report",
+    "description": "A confirmed complaint about a payment handle (guarded: an open endpoint would let anyone smear a handle). Feeds the payee reputation.",
+    "operationId": "shield_report_api_shield_report_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Rp"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/graph": {
    "get": {
     "summary": "Graph Ep",
@@ -856,6 +893,42 @@
       }
      }
     ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/graph/verdict": {
+   "post": {
+    "summary": "Graph Verdict",
+    "operationId": "graph_verdict_api_graph_verdict_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Vd"
+       }
+      }
+     },
+     "required": true
+    },
     "responses": {
      "200": {
       "description": "Successful Response",
@@ -1032,6 +1105,99 @@
      }
     }
    }
+  },
+  "/api/psi/set": {
+   "get": {
+    "summary": "Psi Set",
+    "description": "Our flagged payees, blinded with our secret and shuffled. Reveals nothing to someone who does not already hold the same payee.",
+    "operationId": "psi_set_api_psi_set_get",
+    "parameters": [
+     {
+      "name": "bank",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "this-bank",
+       "title": "Bank"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/psi/reblind": {
+   "post": {
+    "summary": "Psi Reblind",
+    "description": "Blind a peer's questions with our secret. Budget: 6 calls per hour, 10,000 values each, every call audited.",
+    "operationId": "psi_reblind_api_psi_reblind_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/psi/sync": {
+   "post": {
+    "summary": "Psi Sync",
+    "description": "Ask a peer bank which of OUR payees it has flagged. The peer must be listed in FH_PSI_PEERS (stops this being used to make the server fetch arbitrary URLs).",
+    "operationId": "psi_sync_api_psi_sync_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PsiSync"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
   }
  },
  "components": {
@@ -1157,6 +1323,48 @@
     },
     "type": "object",
     "title": "HTTPValidationError"
+   },
+   "PsiSync": {
+    "properties": {
+     "peer": {
+      "type": "string",
+      "title": "Peer"
+     },
+     "bank": {
+      "type": "string",
+      "title": "Bank",
+      "default": "peer"
+     },
+     "key": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key"
+     }
+    },
+    "type": "object",
+    "required": [
+     "peer"
+    ],
+    "title": "PsiSync"
+   },
+   "Rp": {
+    "properties": {
+     "handle": {
+      "type": "string",
+      "title": "Handle"
+     }
+    },
+    "type": "object",
+    "required": [
+     "handle"
+    ],
+    "title": "Rp"
    },
    "Rt": {
     "properties": {
@@ -1383,6 +1591,24 @@
      "type"
     ],
     "title": "ValidationError"
+   },
+   "Vd": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "verdict": {
+      "type": "string",
+      "title": "Verdict"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "verdict"
+    ],
+    "title": "Vd"
    }
   }
  }

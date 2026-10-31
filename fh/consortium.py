@@ -31,6 +31,18 @@ def _sig(body, k):
     return hmac.new(k, json.dumps(body, sort_keys=True, separators=(",", ":")).encode(), hashlib.sha256).hexdigest()
 
 
+def evidence(st, now, min_complaints=2, min_fan=6):
+    """Plain payee ids this bank has strong evidence against. Stays inside the bank; only hashes or blinded values leave."""
+    out = set()
+    for kk in st.bad:
+        if kk.startswith("m:") and st.nbad(kk, now) >= min_complaints:
+            out.add(kk[2:])
+    for pay, snd in st.pu.items():
+        if st.nbad("m:" + pay, now) >= 1 and sum(1 for t in snd.values() if 0 <= now - t <= 7 * 86400) >= min_fan:
+            out.add(pay)
+    return out
+
+
 def export(st, now, bank, min_complaints=2, min_fan=6, k=None, ts=None):
     """Hashes of payees this bank has strong evidence against. Only evidence counts, never mere novelty."""
     k = k or key()

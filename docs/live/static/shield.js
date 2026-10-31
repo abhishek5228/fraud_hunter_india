@@ -57,6 +57,7 @@ function renderShield(r) {
   draw();
   out.replaceChildren(el("div", { class: "card" }, el("div", { class: "body" },
     el("div", { class: "verdict " + r.level }, el("div", { class: "big" }, head), el("div", { class: "note" }, "warning score " + r.score + " / 100" + (r.handles.length ? " · payment handle: " + r.handles.join(", ") : ""))),
+    r.owner ? el("div", { class: "note", style: "margin-top:8px" }, "Registered to: " + r.owner + " (from the payment network)") : null,
     r.network ? el("div", { class: "note", style: "margin-top:8px" }, "Risk engine says: " + r.network.fan_in + " first-time senders this week, " + r.network.complaints + " fraud complaint(s) for this payee.") : null,
     el("div", { class: "chips", style: "padding:10px 0 0" }, en, hi), body)));
 }

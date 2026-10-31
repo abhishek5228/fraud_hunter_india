@@ -19,6 +19,17 @@ from .gen import IST
 
 ACT = {0: "approved", 1: "challenged with a step-up (OTP / in-app confirmation)", 2: "declined"}
 RAIL = dict(upi="UPI", ecom="card, online", pos="card, in person", atm="ATM withdrawal", imps="IMPS / net-banking transfer")
+HI = {
+    "MULE_PAYEE": "प्राप्तकर्ता कई हालिया ठगी शिकायतों से जुड़ा है", "PAYEE_FAN_IN": "इस नए प्राप्तकर्ता को इस हफ़्ते कई अन्य ग्राहकों ने भी पहली बार पैसे भेजे",
+    "SCREEN_SHARE_NEW_PAYEE": "स्क्रीन-शेयरिंग ऐप चालू है और भुगतान पहली बार के व्यक्ति को जा रहा है", "SCREEN_SHARE_ACTIVE": "भुगतान के दौरान स्क्रीन-शेयरिंग ऐप चालू था",
+    "SIM_SWAP_DRAIN": "SIM बदलने के तुरंत बाद नए डिवाइस से बड़ी रकम पहली बार के प्राप्तकर्ता को", "SIM_CHANGE_NEW_DEVICE": "SIM बदलने के बाद नए डिवाइस से भुगतान",
+    "IMPOSSIBLE_TRAVEL": "कार्ड का उपयोग इतनी दूर हुआ जितना इतने कम समय में संभव नहीं", "CARD_TESTING": "कुछ मिनटों में कई छोटे ऑनलाइन चार्ज (कार्ड टेस्टिंग)",
+    "DEVICE_RING": "इस डिवाइस से इस हफ़्ते कई अन्य खातों ने भुगतान किया", "SHARED_NEW_DEVICE": "यह डिवाइस कई अन्य खातों पर भी दिखा",
+    "BAD_REPUTATION": "डिवाइस या नेटवर्क कई पुष्ट ठगी रिपोर्टों से जुड़ा है", "LIMIT_STRUCTURING": "रकम भुगतान सीमा से ठीक नीचे रखी गई है",
+    "COLLECT_FIRST_PAYEE": "पहली बार के प्राप्तकर्ता की कलेक्ट रिक्वेस्ट मंज़ूर की जा रही है", "NEW_DEVICE_HIGH_VALUE": "नए डिवाइस से बड़ी रकम",
+    "EXCEEDS_UPI_LIMIT": "रकम किसी भी UPI सीमा से अधिक है", "NEW_CUSTOMER_HIGH_VALUE": "लगभग बिना इतिहास वाले ग्राहक से बड़ी रकम",
+    "ANON_NETWORK": "भुगतान VPN, प्रॉक्सी या डेटा-सेंटर नेटवर्क से आया", "CONSORTIUM_MULE": "किसी दूसरे बैंक ने इस प्राप्तकर्ता को संदिग्ध बताया है", "BLOCKLIST": "यह इकाई हाथ से ब्लॉक की गई थी",
+}
 FOLLOW = {
     "MULE_PAYEE": "Place the payee on watch; check inbound credits and onward transfers; consider a hold on the beneficiary account.",
     "PAYEE_FAN_IN": "Review the other customers who paid this payee this week; contact them if any payment was authorised under pressure.",
@@ -54,6 +65,8 @@ def template(f):
     hi = ("%s से %s का भुगतान, ग्राहक %s, %s, प्राप्तकर्ता %s। जोखिम स्कोर %d%%; इंजन ने इसे %s। मुख्य कारण: %s।" % (
         f["rail"], f["amount"], f["customer"], f["when"], f["payee"], f["risk_pct"],
         {"approved": "मंज़ूर किया", "declined": "अस्वीकार किया"}.get(f["action"], "स्टेप-अप (OTP/ऐप पुष्टि) के लिए रोका"), "; ".join(why[:3])))
+    why_hi = [HI.get(r["code"], "नियम %s लागू हुआ" % r["code"]) for r in f["rules"]] or ["मॉडल स्कोर (ब्योरा अंग्रेज़ी रिपोर्ट में)"]
+    hi = hi.rsplit("मुख्य कारण:", 1)[0] + "मुख्य कारण: " + "; ".join(why_hi[:3]) + "।"
     nxt = f["follow"] or ["Review the customer's recent history and confirm with them on the registered number if the decision was a step-up or decline."]
     st = "\n".join([
         "DRAFT SUSPICIOUS TRANSACTION REPORT (analyst must review; not the FIU-IND FINnet format)",
@@ -66,7 +79,12 @@ def template(f):
         "7. Recommended follow-up: " + " ".join(nxt),
         "8. If the customer was deceived into paying: advise reporting at cybercrime.gov.in and the 1930 helpline, and record the complaint number here: [____].",
         "9. Analyst: [NAME] | Date: [____] | Decision: [report / no report] | Reason: [____]"])
-    return dict(en=en, hi=hi, str=st)
+    j = dict(draft=True, format="free-form headings, not FIU-IND FINnet", reporting_entity="[BANK NAME / BRANCH / PRINCIPAL OFFICER]",
+             customer=dict(pseudonymous_id=f["customer"], kyc="[attach from core system]"),
+             transaction=dict(id=f["id"], when=f["when"], amount_inr=f["amount_raw"], rail=f["rail"], payee=f["payee"], category=f["category"], location=f["city"]),
+             grounds_of_suspicion=why, automated_risk_pct=f["risk_pct"], action_taken=f["action"], recommended_follow_up=nxt,
+             complaint_reference="[cybercrime.gov.in / 1930 complaint number, if the customer was deceived]", analyst=dict(name="[ ]", date="[ ]", decision="[report / no report]", reason="[ ]"))
+    return dict(en=en, hi=hi, str=st, str_json=j)
 
 
 def _nums(s):
