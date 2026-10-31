@@ -240,14 +240,16 @@ def test_copilot_hindi_is_hindi_and_structured_report_exists():
 # ---- the in-app LLM check
 def test_llm_check_reports_each_failure_plainly_and_never_leaks_the_key(monkeypatch):
     import urllib.error
-    assert "not set" in copilot.check()["error"]
+    assert "no key set" in copilot.check()["error"]
+    for v in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "FH_LLM_PROVIDER", "FH_LLM_MODEL"):
+        monkeypatch.delenv(v, raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-secret-123")
     ok = copilot.check(call=lambda k, p: "Declined a ₹45,000 UPI payment at 93% risk; the payee is linked to 3 recent fraud complaints.")
     assert ok["ok"] and "₹45,000" in ok["text"]
     def http(code):
         def f(k, p): raise urllib.error.HTTPError("https://api.anthropic.com", code, "x", {}, None)
         return f
-    assert "rejected" in copilot.check(call=http(401))["error"] and "FH_LLM_MODEL" in copilot.check(call=http(404))["error"] and "credit" in copilot.check(call=http(429))["error"]
+    assert "rejected" in copilot.check(call=http(401))["error"] and "FH_LLM_MODEL" in copilot.check(call=http(404))["error"] and "quota" in copilot.check(call=http(429))["error"]
     assert "reach" in copilot.check(call=lambda k, p: (_ for _ in ()).throw(OSError("down")))["error"]
     assert "unexpected format" in copilot.check(call=lambda k, p: (_ for _ in ()).throw(KeyError("content")))["error"]
     bad = copilot.check(call=lambda k, p: "Declined ₹45,000 and 777 more")
@@ -263,3 +265,38 @@ def test_llm_check_endpoint_is_guarded_and_listed(client, monkeypatch):
     monkeypatch.delenv("FH_API_KEY")
     assert client.post("/api/llm/check").json()["ok"] is False
     assert client.get("/api/integrations").json()["llm"]["on"] is False
+
+
+def test_provider_choice_and_gemini_request_shape(monkeypatch):
+    for v in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "ANTHROPIC_API_KEY", "FH_LLM_PROVIDER", "FH_LLM_MODEL"):
+        monkeypatch.delenv(v, raising=False)
+    assert copilot.provider() is None
+    monkeypatch.setenv("GEMINI_API_KEY", "g-secret-999")
+    assert copilot.provider()[0] == "gemini" and copilot.provider()[2].startswith("gemini")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    assert copilot.provider()[0] == "gemini"                                     # both set: Gemini unless told otherwise
+    monkeypatch.setenv("FH_LLM_PROVIDER", "anthropic")
+    assert copilot.provider()[0] == "anthropic"
+    monkeypatch.delenv("FH_LLM_PROVIDER"); monkeypatch.delenv("ANTHROPIC_API_KEY")
+    monkeypatch.setenv("FH_LLM_MODEL", "gemini-custom")
+    import json, io, urllib.request as ur
+    seen = {}
+    class R(io.BytesIO):
+        def __enter__(s): return s
+        def __exit__(s, *a): pass
+    def fake(req, timeout=0):
+        seen.update(url=req.full_url, hdr={k.lower(): v for k, v in req.header_items()}, body=json.loads(req.data))
+        return R(json.dumps({"candidates": [{"content": {"parts": [{"text": "Declined a ₹45,000 UPI payment at 93% risk."}]}}]}).encode())
+    monkeypatch.setattr(ur, "urlopen", fake)
+    r = copilot.check()
+    assert r["ok"] and r["provider"] == "gemini" and r["model"] == "gemini-custom"
+    assert seen["url"] == "https://generativelanguage.googleapis.com/v1beta/models/gemini-custom:generateContent"
+    assert seen["hdr"]["x-goog-api-key"] == "g-secret-999" and "g-secret" not in seen["url"] and "g-secret" not in json.dumps(r)
+    sent = seen["body"]["contents"][0]["parts"][0]["text"]
+    assert "mu***@paytm" in sent and "rz_fixture" in sent                         # payee is masked before leaving the server
+
+
+def test_payee_is_masked_in_every_outside_prompt():
+    c = dict(copilot.FIXTURE, mid="rakesh.yadav@okaxis")
+    p = copilot._prompt(copilot.facts(c))
+    assert "rakesh.yadav" not in p and "ra***@okaxis" in p

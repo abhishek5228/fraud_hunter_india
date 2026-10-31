@@ -122,7 +122,7 @@ async function wireTab() {
     $("#w-alert").onclick = async () => { try { const r = await api("/api/alerts/test", {}); msg("Alert test: " + Object.entries(r).map(([k, v]) => k + " " + v).join(", ")); } catch (e) { msg(e.message); } };
     $("#w-llm").onclick = async () => {
       msg("Calling the AI once on a test case…");
-      try { const r = await api("/api/llm/check", {}); msg(r.ok ? "AI wording works (" + r.model + "): " + r.text : "AI wording failed (" + r.model + "): " + r.error); } catch (e) { msg(e.message); }
+      try { const r = await api("/api/llm/check", {}); msg(r.ok ? "AI wording works (" + r.provider + " " + r.model + "): " + r.text : "AI wording failed" + (r.model ? " (" + r.provider + " " + r.model + ")" : "") + ": " + r.error); } catch (e) { msg(e.message); }
     };
     $("#w-load").onclick = async () => {
       msg("Timing 3,000 payments…");
@@ -148,7 +148,7 @@ async function wireLoad() {
     row("Razorpay webhook", ig.razorpay.on, ig.razorpay.on ? ig.razorpay.ok + " scored · " + ig.razorpay.bad_sig + " rejected (bad signature) · " + ig.razorpay.ignored + " ignored" : "set RAZORPAY_WEBHOOK_SECRET on the server"),
     row("IP intelligence (ipinfo.io)", ig.ipinfo.on, ig.ipinfo.on ? ig.ipinfo.cached + " IPs cached · " + ig.ipinfo.errors + " lookup errors" : "set IPINFO_TOKEN: real IP → city + VPN / data-centre detection"),
     row("Alerts", ig.alerts.channels.length > 0, ig.alerts.channels.length ? ig.alerts.channels.join(" + ") + " · " + ig.alerts.sent + " sent · " + ig.alerts.dropped + " rate-limited · " + ig.alerts.failed + " failed" : "set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID, or SLACK_WEBHOOK_URL"),
-    row("AI wording for analyst briefs (optional)", ig.llm.on, ig.llm.on ? "model " + ig.llm.model + " · facts only, no customer data" : "set ANTHROPIC_API_KEY; briefs use plain templates without it"),
+    row("AI wording for analyst briefs (optional)", ig.llm.on, ig.llm.on ? ig.llm.provider + " · " + ig.llm.model + " · facts only, payee masked" : "set GEMINI_API_KEY or ANTHROPIC_API_KEY; briefs use plain templates without it"),
     row("API key on scoring endpoints", ig.auth, ig.auth ? "X-API-Key required" : "open (set FH_API_KEY before going public)"));
   $("#w-list").replaceChildren(...(w.events.length ? w.events.map(e => el("div", { class: "row", style: "grid-template-columns:62px 1fr 84px 74px" },
     el("div", { class: "t" }, stime(e.t)),

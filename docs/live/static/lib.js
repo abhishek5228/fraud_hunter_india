@@ -200,7 +200,7 @@ function renderCase(host, c, cfg, o = {}) {
       } catch (e) { ev.target.disabled = false; ev.target.textContent = "Draft analyst brief"; brief.replaceChildren(el("div", { class: "note" }, e.message)); }
     };
     host.append(brief);
-    host.append(el("div", { class: "act" }, el("button", { class: "btn", onclick: draft(false) }, "Draft analyst brief"), el("button", { class: "btn", title: "Rewords the English brief from the same facts; needs ANTHROPIC_API_KEY", onclick: draft(true) }, "Draft with AI wording"), el("button", { class: "btn bad", onclick: fb("fraud", false) }, "Confirm fraud"),
+    host.append(el("div", { class: "act" }, el("button", { class: "btn", onclick: draft(false) }, "Draft analyst brief"), el("button", { class: "btn", title: "Rewords the English brief from the same facts; needs GEMINI_API_KEY or ANTHROPIC_API_KEY", onclick: draft(true) }, "Draft with AI wording"), el("button", { class: "btn bad", onclick: fb("fraud", false) }, "Confirm fraud"),
       el("button", { class: "btn bad", onclick: fb("fraud", true) }, "Confirm fraud and block device, network and payee"), el("button", { class: "btn", onclick: fb("legit", false) }, "Mark legitimate")));
   } else host.append(el("div", { style: "height:14px" }));
 }

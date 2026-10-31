@@ -1,9 +1,10 @@
 """Analyst copilot: turn one scored case into a short brief and a suspicious-transaction-report DRAFT.
 
 The facts and the decision always come from the engine. Text is written from a template, so it works with no API key and can be
-audited. If ANTHROPIC_API_KEY is set the brief can optionally be re-worded by an LLM that is shown ONLY the structured facts
-(a pseudonymous customer id, amounts, reason codes), is told not to add anything, and whose output is rejected if it drops a
-number or invents one. Any failure falls back to the template. The LLM never decides anything.
+audited. If GEMINI_API_KEY (Google) or ANTHROPIC_API_KEY (Claude) is set, the English brief can optionally be re-worded by an LLM
+that is shown ONLY the structured facts (a pseudonymous customer id, amounts, reason codes, a MASKED payee), is told not to add
+anything, and whose output is rejected if it invents a number. Any failure falls back to the template. The LLM never decides anything.
+Do not point this at a free-tier key with real customer data: free tiers may use inputs to improve the provider's products.
 
 The report is a draft with the usual headings. It is NOT the FIU-IND FINnet format; an analyst must review and complete it.
 """
@@ -12,6 +13,7 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 from .fmt import inr
@@ -91,13 +93,35 @@ def _nums(s):
     return set(re.findall(r"\d[\d,]*\.?\d*", s))
 
 
+def provider():
+    """(name, key, model) for the configured LLM, or None. GEMINI_API_KEY / GOOGLE_API_KEY -> Gemini, ANTHROPIC_API_KEY -> Claude.
+    FH_LLM_PROVIDER=gemini|anthropic forces a choice when both are set; FH_LLM_MODEL overrides the default model."""
+    e = os.environ.get
+    g, a = e("GEMINI_API_KEY") or e("GOOGLE_API_KEY"), e("ANTHROPIC_API_KEY")
+    want = (e("FH_LLM_PROVIDER") or "").lower()
+    if g and (want == "gemini" or (want != "anthropic" and not a) or (not want and g)):
+        return "gemini", g, e("FH_LLM_MODEL", "gemini-3.6-flash")
+    if a:
+        return "anthropic", a, e("FH_LLM_MODEL", "claude-sonnet-5-5")
+    return None
+
+
+def _prompt(f):
+    """What an outside LLM may see: the facts, with the payee masked and no follow-up text."""
+    from .graph import mask
+    g = {x: f[x] for x in f if x != "follow"}
+    g["payee"] = mask(f["payee"])
+    return ("Rewrite these facts as a concise 3-4 sentence note for a bank fraud analyst. Use ONLY the facts below, add nothing, "
+            "keep every number exactly as given.\n\n" + json.dumps(g, ensure_ascii=False))
+
+
 def polish(f, base, call=None):
     """Optionally reword the English brief with an LLM. Returns (text, source). Never raises."""
-    k = os.environ.get("ANTHROPIC_API_KEY")
-    if not k:
+    pv = provider()
+    if not pv:
         return base, "template"
-    prompt = ("Rewrite these facts as a concise 3-4 sentence note for a bank fraud analyst. Use ONLY the facts below, add nothing, "
-              "keep every number exactly as given.\n\n" + json.dumps({x: f[x] for x in f if x != "follow"}, ensure_ascii=False))
+    k = pv[1]
+    prompt = _prompt(f)
     try:
         out = (call or _call)(k, prompt).strip()
     except (urllib.error.URLError, OSError, ValueError, KeyError, TimeoutError):
@@ -109,7 +133,15 @@ def polish(f, base, call=None):
 
 
 def _call(key, prompt):
-    body = json.dumps(dict(model=os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5"), max_tokens=400, messages=[dict(role="user", content=prompt)])).encode()
+    name, _, model = provider() or ("anthropic", key, "claude-sonnet-5-5")
+    if name == "gemini":
+        body = json.dumps(dict(contents=[dict(parts=[dict(text=prompt)])], generationConfig=dict(maxOutputTokens=500, temperature=0.2))).encode()
+        req = urllib.request.Request("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent" % urllib.parse.quote(model, safe="-._"),
+                                     body, {"content-type": "application/json", "x-goog-api-key": key})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            d = json.loads(r.read(200000))
+        return "".join(p.get("text", "") for p in d["candidates"][0]["content"]["parts"])
+    body = json.dumps(dict(model=model, max_tokens=400, messages=[dict(role="user", content=prompt)])).encode()
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", body, {"content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01"})
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read(100000))["content"][0]["text"]
@@ -131,24 +163,24 @@ FIXTURE = dict(id="fixture", ts=1793433679, uid="rz_fixture", mid="mu***@paytm",
 
 def check(call=None):
     """Try the real LLM once on a fixture case (no customer data) and say plainly what happened. Never raises, never returns the key."""
-    model = os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5")
-    k = os.environ.get("ANTHROPIC_API_KEY")
-    if not k:
-        return dict(ok=False, model=model, error="ANTHROPIC_API_KEY is not set on the server")
+    pv = provider()
+    if not pv:
+        return dict(ok=False, model="", provider="", error="no key set: put GEMINI_API_KEY (Google) or ANTHROPIC_API_KEY (Claude) in the server's environment")
+    name, k, model = pv
     f = facts(FIXTURE)
     base = template(f)["en"]
-    prompt = ("Rewrite these facts as a concise 3-4 sentence note for a bank fraud analyst. Use ONLY the facts below, add nothing, "
-              "keep every number exactly as given.\n\n" + json.dumps({x: f[x] for x in f if x != "follow"}, ensure_ascii=False))
+    who = dict(provider=name, model=model)
     try:
-        out = (call or _call)(k, prompt).strip()
+        out = (call or _call)(k, _prompt(f)).strip()
     except urllib.error.HTTPError as e:
-        why = {401: "the key was rejected (wrong or revoked)", 403: "the key is not allowed to use this model", 404: "the model name was not found: set FH_LLM_MODEL",
-               429: "rate limited or out of credit", 400: "the request was rejected (check FH_LLM_MODEL)"}.get(e.code, "HTTP %d from the API" % e.code)
-        return dict(ok=False, model=model, error=why)
+        why = {400: "the request was rejected: usually a wrong key or a wrong model name (set FH_LLM_MODEL)", 401: "the key was rejected (wrong or revoked)",
+               403: "the key is not allowed to use this model or API", 404: "the model name was not found: set FH_LLM_MODEL",
+               429: "rate limited or out of quota"}.get(e.code, "HTTP %d from the API" % e.code)
+        return dict(ok=False, error=why, **who)
     except (urllib.error.URLError, OSError, TimeoutError):
-        return dict(ok=False, model=model, error="could not reach api.anthropic.com from the server")
-    except (ValueError, KeyError, IndexError):
-        return dict(ok=False, model=model, error="the API answered in an unexpected format")
+        return dict(ok=False, error="could not reach the API from the server", **who)
+    except (ValueError, KeyError, IndexError, TypeError):
+        return dict(ok=False, error="the API answered in an unexpected format (or blocked the answer)", **who)
     if not out or not _nums(out) <= (_nums(json.dumps(f)) | _nums(base)):
-        return dict(ok=False, model=model, error="the model's answer added numbers that were not in the facts, so it was rejected", text=out[:400])
-    return dict(ok=True, model=model, text=out)
+        return dict(ok=False, error="the model's answer added numbers that were not in the facts, so it was rejected", text=out[:400], **who)
+    return dict(ok=True, text=out, **who)

@@ -524,7 +524,7 @@ async def integrations():
         razorpay=dict(on=bool(os.environ.get("RAZORPAY_WEBHOOK_SECRET")), url="/api/webhook/razorpay", **S["hook"]),
         ipinfo=dict(on=ip.on, cached=len(ip.cache), cache_hits=ip.hits, errors=ip.errs),
         alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")),
-        llm=dict(on=bool(os.environ.get("ANTHROPIC_API_KEY")), model=os.environ.get("FH_LLM_MODEL", "claude-sonnet-5-5")))
+        llm=dict(on=bool(copilot.provider()), provider=(copilot.provider() or ("", "", ""))[0], model=(copilot.provider() or ("", "", ""))[2]))
 
 
 @app.post("/api/llm/check", dependencies=[Depends(guard)])
