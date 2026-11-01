@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+artifacts_hard/
+dist/
+samples/
+docs/
+examples/
+tests/
+sdk/
+.env
+*.mp4
