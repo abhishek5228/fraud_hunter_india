@@ -23,3 +23,8 @@ def test_rule_pin_to_receive_fires_on_a_scam_and_stays_quiet_on_an_innocent_mess
 def test_rule_collect_approve_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "collect_approve" in ids('Approve the collect request to get your refund')
     assert "collect_approve" not in ids('Approve the leave request for next week')
+
+
+def test_rule_remote_app_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "remote_app" in ids('Download AnyDesk so I can help you')
+    assert "remote_app" not in ids('Download the receipt from your email')
