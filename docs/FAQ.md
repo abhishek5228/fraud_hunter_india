@@ -1,7 +1,7 @@
 # FAQ
 
 **Is this real fraud detection?**
-It is a real engine running on simulated data. The numbers show the engineering, not real-world performance. Real performance needs a bank's labelled history.
+It is a real engine running on simulated payment data. The numbers show the engineering, not real-world performance, which needs a bank's labelled history. Two pieces were also tested on real public data: the additive model on the ULB card-fraud set (average precision 0.76 on a time-ordered split, competitive with logistic regression and a random forest but not clearly better; 75 fraud in the test set) and Scam Shield on about 55,000 real text messages (46.6% of real smishing flagged, 0.04% of ordinary texts falsely flagged). Details and caveats: [BENCHMARKS.md](BENCHMARKS.md).
 
 **Why synthetic data?**
 Banks do not publish fraud data, and public "UPI fraud" CSVs online are synthetic and often leak the answer. The simulator has eight Indian fraud types and twelve kinds of honest look-alike behaviour, so false alarms have a cost.
