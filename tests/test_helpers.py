@@ -34,3 +34,8 @@ def test_ingest_maps_places_to_known_cities():
 def test_ingest_reads_fraud_labels():
     assert ingest._label("TRUE") == "1" and ingest._label("legit") == "0"
     assert ingest._label("2") == "2" and ingest._label("maybe") is None
+
+
+def test_names_match_compares_meaningful_words():
+    assert shield.names_match("Rakesh K", "rakesh kumar yadav")
+    assert not shield.names_match("SBI Refund", "STATE BANK OF INDIA")
