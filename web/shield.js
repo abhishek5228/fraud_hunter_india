@@ -32,6 +32,19 @@ function shieldTab() {
   if (shieldTab.done) return; shieldTab.done = true;
   $("#sh-samples").replaceChildren(...SH_SAMPLES.map(([n, t]) => el("button", { class: "chip", onclick: () => { $("#sh-text").value = t; runShield(); } }, n)));
   $("#sh-go").onclick = runShield;
+  const real = $("#sh-real");
+  if (window.FH_DEMO) { real.replaceChildren(el("span", { class: "note" }, "Real messages are loaded by the live backend (Real data tab). Not available in this static demo.")); return; }
+  const ks = [["smish", "A real smishing text"], ["spam", "A real SMS spam"], ["ham", "A real ordinary SMS"], ["india", "A real SMS from India"]];
+  real.replaceChildren(...ks.map(([k, n]) => el("button", { class: "chip", onclick: () => realSample(k) }, n)));
+}
+async function realSample(kind) {
+  const out = $("#sh-out");
+  try {
+    const r = await api("/api/realdata/sample?kind=" + kind);
+    $("#sh-text").value = r.text; renderShield(r.verdict);
+    const ok = (kind === "smish" || kind === "spam") ? r.verdict.level !== "none" : r.verdict.level === "none";
+    out.prepend(el("div", { class: "prov " + (ok ? "real" : "sim"), style: "margin-top:0" }, el("b", null, "TRUE LABEL: " + r.truth.toUpperCase()), el("span", null, (ok ? "Scam Shield got this one right. " : "Scam Shield got this one wrong. ") + "This is a real message from a public dataset (" + r.source + "). Scam Shield said " + r.verdict.level.toUpperCase() + ". Try a few: it catches under half of real smishing.")));
+  } catch (e) { out.replaceChildren(el("div", { class: "card" }, el("div", { class: "empty" }, e.message + " (open the Real data tab and download the collections)"))); }
 }
 async function runShield() {
   const text = $("#sh-text").value.trim(), out = $("#sh-out");

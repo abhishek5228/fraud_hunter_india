@@ -34,7 +34,7 @@ function tabbing() {
     $$(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
     $$(".tab").forEach(t => t.classList.toggle("on", t.id === "tab-" + b.dataset.tab));
     if (b.dataset.tab === "lab") lab(); if (b.dataset.tab === "model") model(); if (b.dataset.tab === "play") play();
-    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab(); if (b.dataset.tab === "wire") wireTab(); if (b.dataset.tab === "shield") shieldTab(); if (b.dataset.tab === "mules") mulesTab();
+    if (b.dataset.tab === "review") review(); if (b.dataset.tab === "backtest") backtestTab(); if (b.dataset.tab === "redteam") redTab(); if (b.dataset.tab === "wire") wireTab(); if (b.dataset.tab === "shield") shieldTab(); if (b.dataset.tab === "real") realTab(); if (b.dataset.tab === "mules") mulesTab();
   }));
 }
 
