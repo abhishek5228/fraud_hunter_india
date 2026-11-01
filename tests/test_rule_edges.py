@@ -29,3 +29,9 @@ def test_card_testing_needs_online_card_tiny_amount_and_a_burst():
     assert "CARD_TESTING" not in codes(amt=2, chan="ecom", sm5=2)
     assert "CARD_TESTING" not in codes(amt=50, chan="ecom", sm5=5)
     assert "CARD_TESTING" not in codes(amt=2, chan="upi", sm5=5)
+
+
+def test_screen_share_is_ignored_on_small_payments_to_shops_but_not_to_strangers():
+    assert "SCREEN_SHARE_ACTIVE" not in codes(amt=40, ratf=True)
+    assert "SCREEN_SHARE_ACTIVE" in codes(amt=6000, ratf=True)
+    assert "SCREEN_SHARE_NEW_PAYEE" in codes(amt=40, ratf=True, pers=True, nmer=True)
