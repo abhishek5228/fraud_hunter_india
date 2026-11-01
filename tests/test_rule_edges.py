@@ -22,3 +22,10 @@ def test_upi_limit_rule_fires_only_above_ten_lakh():
 def test_new_customer_high_value_needs_both_a_stranger_and_a_big_amount():
     assert "NEW_CUSTOMER_HIGH_VALUE" in codes(amt=100_000)
     assert "NEW_CUSTOMER_HIGH_VALUE" not in codes(amt=99_999)
+
+
+def test_card_testing_needs_online_card_tiny_amount_and_a_burst():
+    assert "CARD_TESTING" in codes(amt=2, chan="ecom", sm5=3)
+    assert "CARD_TESTING" not in codes(amt=2, chan="ecom", sm5=2)
+    assert "CARD_TESTING" not in codes(amt=50, chan="ecom", sm5=5)
+    assert "CARD_TESTING" not in codes(amt=2, chan="upi", sm5=5)
