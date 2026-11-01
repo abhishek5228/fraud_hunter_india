@@ -68,3 +68,8 @@ def test_rule_prize_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
 def test_rule_task_job_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "task_job" in ids('Work from home, earn 5000 per day just by completing tasks')
     assert "task_job" not in ids('The project task list is on the board')
+
+
+def test_rule_short_link_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "short_link" in ids('Claim here https://bit.ly/abc123')
+    assert "short_link" not in ids('Read more at https://example.org/guide')
