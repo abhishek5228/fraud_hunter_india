@@ -43,3 +43,8 @@ def test_rule_digital_arrest_fires_on_a_scam_and_stays_quiet_on_an_innocent_mess
 def test_rule_threat_urgent_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "threat_urgent" in ids('Your account will be blocked today unless you act')
     assert "threat_urgent" not in ids('Your table is booked for today at eight')
+
+
+def test_rule_electricity_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "electricity" in ids('Your electricity connection will be disconnected, update now')
+    assert "electricity" not in ids('The electricity board published its tariff')
