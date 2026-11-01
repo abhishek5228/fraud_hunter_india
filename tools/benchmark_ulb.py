@@ -10,7 +10,6 @@ so this tests the MODEL, not the behavioural feature store that is the project's
 """
 import argparse
 import csv
-import io
 import os
 import sys
 import time
