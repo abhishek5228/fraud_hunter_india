@@ -11,3 +11,9 @@ RAW = dict(pers=False, nmer=False, chan="upi", kmh=0, km=0, sm5=0, devu=0, mbad=
 def codes(amt=500, chan="upi", **raw):
     x = dict(uid="u", mid="m@upi", amt=amt, chan=chan, dev=None, ip=None)
     return {h[1] for h in rules.check(x, dict(RAW, chan=chan, **raw), feat.Store())}
+
+
+def test_upi_limit_rule_fires_only_above_ten_lakh():
+    assert "EXCEEDS_UPI_LIMIT" not in codes(amt=1_000_000)
+    assert "EXCEEDS_UPI_LIMIT" in codes(amt=1_000_001)
+    assert "EXCEEDS_UPI_LIMIT" not in codes(amt=2_000_000, chan="imps")
