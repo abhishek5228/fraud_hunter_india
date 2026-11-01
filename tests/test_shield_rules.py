@@ -38,3 +38,8 @@ def test_rule_apk_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
 def test_rule_digital_arrest_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "digital_arrest" in ids('This is CBI. You are under digital arrest')
     assert "digital_arrest" not in ids('The museum has a digital art exhibition')
+
+
+def test_rule_threat_urgent_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "threat_urgent" in ids('Your account will be blocked today unless you act')
+    assert "threat_urgent" not in ids('Your table is booked for today at eight')
