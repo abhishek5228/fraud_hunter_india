@@ -53,3 +53,8 @@ def test_rule_electricity_fires_on_a_scam_and_stays_quiet_on_an_innocent_message
 def test_rule_kyc_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "kyc" in ids('Your KYC has expired, update it')
     assert "kyc" not in ids('Welcome to the school open day')
+
+
+def test_rule_call_number_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "call_number" in ids('Please call 9876543210 now')
+    assert "call_number" not in ids('Our office number is listed on the website')
