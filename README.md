@@ -462,7 +462,7 @@ python -m fh.redteam --harden 3      # attack, train on what worked, attack agai
 
 **The problem.** Everything above protects the *bank*. Asha needed a way to check the SMS **before** she called the number.
 
-**How it works.** A tab (and `POST /api/shield`) where anyone pastes a message, a UPI ID or a `upi://pay?...` QR link and gets a verdict in English and Hindi, with what to do. Sixteen rules in `fh/shield_rules.json` look for known Indian scam patterns. The browser and the server read the **same file**, so the offline demo and the live server cannot disagree.
+**How it works.** A tab (and `POST /api/shield`) where anyone pastes a message, a UPI ID or a `upi://pay?...` QR link and gets a verdict in English and Hindi, with what to do. Fifteen rules in `fh/shield_rules.json` look for known Indian scam patterns. The browser and the server read the **same file**, so the offline demo and the live server cannot disagree.
 
 **Example (real).** Asha's SMS:
 
