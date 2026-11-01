@@ -4,7 +4,7 @@
 
 Uses commit=false so it does not teach the engine fake customers. Prints throughput and latency percentiles.
 """
-import argparse, json, random, statistics, threading, time, urllib.request
+import argparse, json, random, threading, time, urllib.request
 
 
 def main():

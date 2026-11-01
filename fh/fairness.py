@@ -16,7 +16,6 @@ import csv
 import json
 import math
 import random
-import sys
 
 import numpy as np
 

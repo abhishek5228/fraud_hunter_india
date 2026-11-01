@@ -5,7 +5,6 @@ import random
 import time
 from collections import OrderedDict, deque
 
-from .gen import World
 
 # probability a fraudster passes a step-up challenge, by typology. Bots rarely do. A SIM-swapper receives the OTP
 # himself, a vished customer reads it out, and a scammed customer completes the challenge on their own phone.

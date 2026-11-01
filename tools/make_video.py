@@ -4,7 +4,6 @@
     python tools/make_video.py             # full recording + encode (about 3 minutes)
 """
 import asyncio
-import glob
 import os
 import shutil
 import subprocess

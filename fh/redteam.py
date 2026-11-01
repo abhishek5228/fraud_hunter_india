@@ -18,13 +18,12 @@ import copy
 import json
 import os
 import random
-import sys
 import time
 
 from . import feat, policy
 from .engine import Engine
-from .gen import CAP, LIM, T0, DAY, IST
-from .geo import CITY, NIN
+from .gen import CAP, LIM, T0, DAY
+from .geo import CITY
 
 LEVERS = dict(
     rail=["upi", "imps"],
@@ -271,7 +270,7 @@ def main(argv=None):
     ap.add_argument("--harden", type=int, default=0, help="rounds of attack, train-on-what-worked, attack again")
     ap.add_argument("--json", default=None)
     a = ap.parse_args(argv)
-    from . import train, api
+    from . import api
     out = []
     if not a.harden:
         g, w, rep, h, eng = api.load()

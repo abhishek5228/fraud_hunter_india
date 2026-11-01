@@ -1,8 +1,7 @@
-import csv, io, os, random, sys, time
+import csv, os, random, sys, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import numpy as np
 import pytest
-from fh import psi, fairness, graph, shield, copilot, feat, consortium
+from fh import psi, fairness, graph, shield, copilot, feat
 
 
 @pytest.fixture(scope="module")
@@ -188,7 +187,6 @@ def test_graph_verdict_mule_blocks_and_legit_hides_and_exempts_rule():
 
 
 def test_graph_verdict_api(client):
-    from fh import api
     c = client.get("/api/graph").json()["clusters"][0]
     assert client.post("/api/graph/verdict", json=dict(id=c["id"], verdict="maybe")).status_code == 422
     assert client.post("/api/graph/verdict", json=dict(id="zzzz", verdict="mule")).status_code == 404

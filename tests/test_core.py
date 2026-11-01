@@ -431,9 +431,7 @@ def test_redteam_attack_money_is_an_expectation_and_never_touches_the_real_store
 
 
 def test_redteam_search_finds_something_and_reports_honestly():
-    import json, os
-    from fh import redteam as R, train
-    from fh.model import GAM
+    from fh import redteam as R
     from fh import api
     g, w, rep, h, eng = api.load()
     r = R.search(g, eng.st, w, seed=3, pop=10, gens=3, k=6, day_ts=T0 + 42 * DAY)

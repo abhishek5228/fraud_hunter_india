@@ -6,7 +6,6 @@
 import asyncio
 import json
 import os
-import sys
 
 from playwright.async_api import async_playwright
 

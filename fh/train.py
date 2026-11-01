@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 from . import feat, model, policy, rules
-from .gen import World, T0, DAY, TYPS
+from .gen import World, T0, DAY
 
 ART = os.environ.get("FH_ART") or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "artifacts")
 DAYS, T_TRAIN, T_VAL = 42, 22, 30
