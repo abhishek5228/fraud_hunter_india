@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import psi, shield, graph as mulegraph, copilot, fairness, consortium, integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
+from . import realdata as rd, psi, shield, graph as mulegraph, copilot, fairness, consortium, integrations as itg, ingest, train, policy, whatif, feat, drift, backtest, audit, persist, sample, redteam
 from .engine import Engine
 from .geo import CITY
 from .gen import T0, DAY, TYPS, CATS, PERS_CATS
@@ -758,3 +758,85 @@ async def psi_sync(b: PsiSync):
         st.cons_plain[m] = dict(bank=b.bank[:40], ts=int(time.time()))
     S["aud"].log("psi_sync", detail=dict(asked=len(mine), matched=len(got), peer=b.bank[:40]), model=S["ver"])
     return dict(ok=True, asked=len(mine), matched=len(got), total=len(st.cons_plain))
+
+
+# ---------------------------------------------------------------- real public datasets (the "Real data" tab)
+def _uploads_ok():
+    return bool(os.environ.get("FH_API_KEY")) or os.environ.get("FH_ALLOW_UPLOADS") == "1"
+
+
+@app.get("/api/realdata")
+async def realdata_list(verify: bool = False):
+    ds = await run_in_threadpool(lambda: [rd.status(i, verify) for i in rd.DATASETS])
+    return dict(datasets=ds, recorded=rd.RECORDED, jobs=list(rd.JOBS.values())[-4:], uploads=_uploads_ok(), can_replay="ulb" in rd.STATE, data_dir=rd.data_dir())
+
+
+def _known(i):
+    if i not in rd.DATASETS:
+        raise HTTPException(404, "unknown dataset")
+
+
+@app.post("/api/realdata/{i}/fetch", dependencies=[Depends(guard)])
+async def realdata_fetch(i: str):
+    """Download the dataset from its fixed source address (never an address supplied by the caller)."""
+    _known(i)
+    try:
+        jid = rd.start("fetch " + i, lambda prog: dict(dataset=i, bytes=rd.fetch(i, lambda n: prog(0.5, "%.1f MB" % (n / 1e6))), status=rd.status(i, True)))
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    return dict(job=jid)
+
+
+@app.post("/api/realdata/{i}/upload", dependencies=[Depends(guard)])
+async def realdata_upload(i: str, req: Request):
+    _known(i)
+    if not _uploads_ok():
+        raise HTTPException(403, "uploads are off on this server: set FH_API_KEY (recommended) or FH_ALLOW_UPLOADS=1")
+    try:
+        n = await rd.receive(i, req)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except Exception as e:                                     # an unreadable file is the user's problem to see, not a server error
+        raise HTTPException(422, "could not read that file (%s)" % type(e).__name__)
+    S["aud"].log("realdata_upload", detail=dict(dataset=i, bytes=n), model=S["ver"])
+    return dict(ok=True, bytes=n, status=await run_in_threadpool(rd.status, i, True))
+
+
+@app.post("/api/realdata/run/{which}", dependencies=[Depends(guard)])
+async def realdata_run(which: str):
+    fn = dict(ulb=rd.bench_ulb, shield=rd.bench_shield).get(which)
+    if not fn:
+        raise HTTPException(404, "which must be ulb or shield")
+    try:
+        jid = rd.start("benchmark " + which, fn)
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    S["aud"].log("realdata_run", detail=dict(which=which), model=S["ver"])
+    return dict(job=jid)
+
+
+@app.get("/api/realdata/job/{jid}")
+async def realdata_job(jid: str):
+    j = rd.JOBS.get(jid)
+    if not j:
+        raise HTTPException(404, "unknown or expired job")
+    return j
+
+
+@app.get("/api/realdata/replay")
+async def realdata_replay(offset: int = 0, n: int = 25, to_fraud: bool = False):
+    try:
+        return rd.replay(offset, n, to_fraud)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.get("/api/realdata/sample")
+async def realdata_sample(kind: str = "smish"):
+    if kind not in ("smish", "spam", "ham", "india"):
+        raise HTTPException(422, "kind must be smish, spam, ham or india")
+    try:
+        r = await run_in_threadpool(rd.sample_text, kind)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    return dict(r, verdict=shield.check(r["text"]))

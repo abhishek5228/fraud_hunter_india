@@ -10,43 +10,23 @@ Data (not redistributed here; see docs/BENCHMARKS.md for where to get it):
 The data is split 50/50 by a fixed seed into DEV and TEST. Rules may be tuned by reading DEV only; TEST is what gets reported.
 """
 import argparse
-import csv
-import json
 import os
-import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from fh import shield
+from fh import realdata as rd, shield
 
 
 def load(a):
-    sm = [r["text"].strip() for r in csv.DictReader(open(a.smishtank, encoding="utf-8")) if r["text"].strip()]
-    uci = [l.rstrip("\n").split("\t", 1) for l in open(a.uci, encoding="utf-8", errors="replace") if "\t" in l]
-    ham = [t for lab, t in uci if lab == "ham"]
-    spam = [t for lab, t in uci if lab == "spam"]
-    nus, nus_in = [], []
-    if a.nus:
-        for m in json.load(open(a.nus, encoding="utf-8"))["smsCorpus"]["message"]:
-            t = (m.get("text") or {}).get("$")
-            if not t or not str(t).strip():
-                continue
-            c = (((m.get("source") or {}).get("userProfile") or {}).get("country") or {}).get("$")
-            nus.append(str(t).strip())
-            if c in ("IN", "India"):
-                nus_in.append(str(t).strip())
-    return dict(smish=sorted(set(sm)), spam=sorted(set(spam)), uci_ham=sorted(set(ham)), nus=sorted(set(nus)), nus_in=sorted(set(nus_in)))
+    d = dict(rd.load_texts("smishtank", a.smishtank))
+    d.update(rd.load_texts("uci_sms", a.uci))
+    d.update(rd.load_texts("nus_sms", a.nus) if a.nus else dict(nus=[], nus_in=[]))
+    d["uci_ham"] = d.pop("ham")
+    return d
 
 
 def split(d, seed):
-    rng = random.Random(seed)
-    dev, test = {}, {}
-    for k, v in d.items():
-        v = list(v)
-        rng.shuffle(v)
-        h = len(v) // 2
-        dev[k], test[k] = v[:h], v[h:]
-    return dev, test
+    return rd._split_texts(d, seed)
 
 
 def rate(texts, level):

@@ -10,3 +10,5 @@ artifacts_hard/
 
 .env
 artifacts/psi.key
+
+data/
