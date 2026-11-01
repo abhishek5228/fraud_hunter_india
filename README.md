@@ -62,7 +62,7 @@ And around that core, **52 working features** that make it usable in the real wo
 
 ## Contents
 
-**Start here:** [Try it live](#try-it-live) · [Try it in 2 minutes](#try-it-in-2-minutes) · [How it works](#how-it-works) · [What is and is not real](#what-is-and-is-not-real)
+**Start here:** [Hindi / हिन्दी](README.hi.md) · [Contributing](CONTRIBUTING.md) · [FAQ](docs/FAQ.md) · [Glossary](docs/GLOSSARY.md) · [Try it live](#try-it-live) · [Try it in 2 minutes](#try-it-in-2-minutes) · [How it works](#how-it-works) · [What is and is not real](#what-is-and-is-not-real)
 
 **Part 1. The engine** (the decision itself)
 [1 Streaming feature store](#1-a-memory-of-every-customer-that-never-peeks-ahead) · [2 Additive model](#2-a-model-that-shows-its-arithmetic) · [3 Logistic baseline](#3-an-honest-baseline) · [4 Guardrail rules](#4-guardrail-rules-that-can-only-escalate) · [5 Cost policy](#5-the-cheapest-action-wins) · [6 Rail-aware margin](#6-each-payment-rail-has-its-own-price) · [7 Two-phase step-up](#7-two-phase-step-up) · [8 Attempts vs trust](#8-attempts-count-trust-is-earned) · [9 Late and honest labels](#9-complaints-arrive-late-and-scam-victims-are-not-suspects) · [10 Windowed reputation](#10-reputation-that-forgets) · [11 Customer messages](#11-messages-in-hindi-and-english) · [12 Drift monitor](#12-a-drift-monitor-that-does-not-cry-wolf) · [13 Simulator](#13-a-simulated-india-to-learn-from)
