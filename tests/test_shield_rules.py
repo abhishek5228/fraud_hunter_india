@@ -78,3 +78,8 @@ def test_rule_short_link_fires_on_a_scam_and_stays_quiet_on_an_innocent_message(
 def test_rule_bank_word_bad_tld_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "bank_word_bad_tld" in ids('Update now: https://sbi-kyc-update.xyz/login')
     assert "bank_word_bad_tld" not in ids('Visit https://www.sbi.co.in for branch timings')
+
+
+def test_rule_official_handle_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "official_handle" in ids('Pay to sbi.refund.support@ybl')
+    assert "official_handle" not in ids('Pay to ramesh@okaxis for the milk')
