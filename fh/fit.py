@@ -188,10 +188,13 @@ def _apply(plan, data):
     return np.array(cols, float).T, names
 
 
-def fit_tabular(text, mp, out, notes):
+def fit_tabular(text, mp, out, notes, max_rows=None):
     rd = csv.DictReader(io.StringIO(text))
     cols = [c for c in rd.fieldnames if c]
-    data = list(rd)[: bt.MAX_ROWS]
+    cap = max_rows or bt.MAX_ROWS
+    data = list(rd)[:cap]
+    if len(data) == cap:
+        notes.append("only the first %d rows were read (raise --max-rows to use more)" % cap)
     m = ingest.detect(cols, mp)
     if "label" not in m:
         raise ValueError("no label column found. Pass --map label=<your column>. Columns: %s" % ", ".join(cols[:40]))
@@ -287,7 +290,7 @@ def predict(art, csv_path, out_path):
 
 # ---------------------------------------------------------------- cli
 
-def run(text, out, mp=None, mode="auto", chan=None, city=None):
+def run(text, out, mp=None, mode="auto", chan=None, city=None, max_rows=None):
     notes = []
     path = mode
     canon = None
@@ -312,7 +315,7 @@ def run(text, out, mp=None, mode="auto", chan=None, city=None):
         notes += [b for b in bad if "unknown or missing category" not in b][:5]
         g, rep = fit_events(rows, out, notes)
     else:
-        g, rep = fit_tabular(text, mp or {}, out, notes)
+        g, rep = fit_tabular(text, mp or {}, out, notes, max_rows)
     rep["notes"] = notes
     json.dump(rep, open(os.path.join(out, "report.json"), "w"), indent=1, default=float)
     return g, rep
@@ -325,6 +328,7 @@ def main(argv=None):
     ap.add_argument("--map", default="")
     ap.add_argument("--mode", choices=["auto", "events", "tabular"], default="auto")
     ap.add_argument("--chan"); ap.add_argument("--city")
+    ap.add_argument("--max-rows", type=int, help="read more than the default %d rows (tabular mode)" % bt.MAX_ROWS)
     ap.add_argument("--predict", metavar="MODEL_DIR", help="score a CSV with a tabular model saved earlier (needs the csv argument)")
     a = ap.parse_args(argv)
     if a.predict:
@@ -334,7 +338,7 @@ def main(argv=None):
     t = time.time()
     ov = dict(p.split("=", 1) for p in a.map.split(",") if "=" in p)
     try:
-        g, rep = run(open(a.csv, encoding="utf-8-sig", errors="replace").read(), a.out, ov, a.mode, a.chan, a.city)
+        g, rep = run(open(a.csv, encoding="utf-8-sig", errors="replace").read(), a.out, ov, a.mode, a.chan, a.city, a.max_rows)
     except ValueError as e:
         sys.exit("fit: %s" % e)
     _show(rep)
