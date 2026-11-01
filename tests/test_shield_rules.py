@@ -48,3 +48,8 @@ def test_rule_threat_urgent_fires_on_a_scam_and_stays_quiet_on_an_innocent_messa
 def test_rule_electricity_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "electricity" in ids('Your electricity connection will be disconnected, update now')
     assert "electricity" not in ids('The electricity board published its tariff')
+
+
+def test_rule_kyc_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "kyc" in ids('Your KYC has expired, update it')
+    assert "kyc" not in ids('Welcome to the school open day')
