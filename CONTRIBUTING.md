@@ -8,7 +8,7 @@ Thanks for looking. This is a small project with a few strong opinions, listed b
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m fh.train                       # about 35 seconds; writes artifacts/
-python -m pytest -q tests                # 95 tests, about a minute
+python -m pytest -q tests                # 121 tests, about a minute
 python -m uvicorn fh.api:app --port 8000 # http://localhost:8000
 ```
 
