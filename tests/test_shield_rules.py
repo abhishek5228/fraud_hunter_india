@@ -13,3 +13,8 @@ def ids(text):
 def test_rule_ask_secret_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "ask_secret" in ids('Please share your OTP with me')
     assert "ask_secret" not in ids('Please share the meeting notes with me')
+
+
+def test_rule_pin_to_receive_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "pin_to_receive" in ids('To receive the refund, enter your UPI PIN on the screen')
+    assert "pin_to_receive" not in ids('Enter the pin on the keypad to open the locker door')
