@@ -11,3 +11,4 @@ jobs:
       - run: python -m fh.train
       - run: python -m pytest -q tests
       - run: python tools/check_readme_links.py README.md README.hi.md
+      - run: for f in web/*.js; do node --check "$f"; done
