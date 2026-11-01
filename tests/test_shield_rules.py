@@ -33,3 +33,8 @@ def test_rule_remote_app_fires_on_a_scam_and_stays_quiet_on_an_innocent_message(
 def test_rule_apk_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "apk" in ids('Install the app from https://x.example/update.apk')
     assert "apk" not in ids('Open the PDF attachment')
+
+
+def test_rule_digital_arrest_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "digital_arrest" in ids('This is CBI. You are under digital arrest')
+    assert "digital_arrest" not in ids('The museum has a digital art exhibition')
