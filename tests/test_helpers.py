@@ -23,3 +23,9 @@ def test_ingest_maps_channel_words_to_rails():
     assert ingest._chan("NEFT", "upi") == "imps"
     assert ingest._chan("Debit Card", "upi") == "ecom"
     assert ingest._chan("", "upi") == "upi"
+
+
+def test_ingest_maps_places_to_known_cities():
+    assert ingest._city("Bangalore") == "Bengaluru"
+    assert ingest._city("Bihar") == "Patna"
+    assert ingest._city("Mars") is None
