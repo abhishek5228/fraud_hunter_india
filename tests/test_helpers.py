@@ -29,3 +29,8 @@ def test_ingest_maps_places_to_known_cities():
     assert ingest._city("Bangalore") == "Bengaluru"
     assert ingest._city("Bihar") == "Patna"
     assert ingest._city("Mars") is None
+
+
+def test_ingest_reads_fraud_labels():
+    assert ingest._label("TRUE") == "1" and ingest._label("legit") == "0"
+    assert ingest._label("2") == "2" and ingest._label("maybe") is None
