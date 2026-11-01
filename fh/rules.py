@@ -4,6 +4,9 @@ from .gen import ip24
 from .fmt import inr
 
 STEP, BLOCK = 1, 2
+UPI_MAX = 1_000_000              # above every UPI transaction limit, in rupees
+HIGH_VALUE_STRANGER = 100_000    # rupees: big money from a customer we hardly know
+NEW_CUSTOMER_PAYMENTS = 4        # fewer trusted payments than this counts as a new customer
 
 
 def check(x, r, st):
@@ -45,10 +48,10 @@ def check(x, r, st):
         hits.append((STEP, "COLLECT_FIRST_PAYEE", "Collect request from a first-time payee: approving it sends money out"))
     if r["ndev"] and x["amt"] >= 25000:
         hits.append((STEP, "NEW_DEVICE_HIGH_VALUE", "New device with a %s payment" % inr(x["amt"], 0)))
-    if ch == "upi" and x["amt"] > 1_000_000:
+    if ch == "upi" and x["amt"] > UPI_MAX:
         hits.append((BLOCK, "EXCEEDS_UPI_LIMIT", "%s is above every UPI transaction limit; a real UPI payment cannot be this large" % inr(x["amt"], 0)))
     P = st.u.get(x["uid"])
-    if (P is None or P.n < 4) and x["amt"] >= 100_000:       # the model never saw big money from a stranger; do not let it extrapolate to "safe"
+    if (P is None or P.n < NEW_CUSTOMER_PAYMENTS) and x["amt"] >= HIGH_VALUE_STRANGER:       # the model never saw big money from a stranger; do not let it extrapolate to "safe"
         hits.append((STEP, "NEW_CUSTOMER_HIGH_VALUE", "%s from a customer with almost no history" % inr(x["amt"], 0)))
     cp = getattr(st, "cons_plain", None)
     if cp and pers and x["mid"] in cp:
