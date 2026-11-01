@@ -7,7 +7,9 @@ function el(tag, at, ...kids) {
   for (const k in at || {}) {
     if (k === "class") e.className = at[k];
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), at[k]);
-    else if (at[k] !== undefined && at[k] !== null) e.setAttribute(k, at[k]);
+    else if (at[k] === false || at[k] === undefined || at[k] === null) continue;      // an absent boolean attribute, not the string "false"
+    else if (at[k] === true) e.setAttribute(k, "");
+    else e.setAttribute(k, at[k]);
   }
   for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
   return e;

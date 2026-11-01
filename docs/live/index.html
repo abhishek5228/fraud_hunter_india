@@ -17,6 +17,7 @@
     <button role="tab" data-tab="review" aria-selected="false">Review</button>
     <button role="tab" data-tab="backtest" aria-selected="false">Backtest</button>
     <button role="tab" data-tab="redteam" aria-selected="false">Red team</button>
+    <button role="tab" data-tab="real" aria-selected="false">Real data</button>
     <button role="tab" data-tab="shield" aria-selected="false">Scam Shield</button>
     <button role="tab" data-tab="mules" aria-selected="false">Mule graph</button>
     <button role="tab" data-tab="wire" aria-selected="false">Live wire</button>
@@ -117,6 +118,19 @@
   </div>
 </section>
 
+<section class="tab" id="tab-real">
+  <div class="lab" style="grid-template-columns:440px 1fr">
+    <div class="col">
+      <div class="card"><h3>Real public datasets <span class="note sp" id="rd-note"></span></h3><div class="body" id="rd-list"><div class="empty">Loading…</div></div></div>
+      <div class="card"><h3>How to read this tab</h3><div class="body note" style="line-height:1.6">Everything on this tab uses <b>real public data</b>, not the simulator. Files are fetched from their original public sources onto the server, or you can upload your own copy. Nothing is stored in the repository. The card-fraud data has <b>no customer, device or payee ids</b> (they were anonymised), so it tests the <b>model</b>, not the behavioural engine. Full caveats: <span class="mono">docs/BENCHMARKS.md</span>.</div></div>
+    </div>
+    <div class="col">
+      <div class="card"><h3>1. Real card fraud: fit the model and test it</h3><div class="body" id="rd-ulb"></div></div>
+      <div class="card"><h3>2. Replay real card transactions through that model</h3><div class="body" id="rd-replay"></div></div>
+      <div class="card"><h3>3. Scam Shield on real text messages</h3><div class="body" id="rd-shield"></div></div>
+    </div>
+  </div>
+</section>
 <section class="tab" id="tab-shield">
   <div class="lab" style="grid-template-columns:480px 1fr">
     <div class="col">
@@ -124,6 +138,8 @@
         <div class="note" style="margin-bottom:8px">Paste a message, a UPI handle, a QR link (upi://pay?...) or a web link. Nothing leaves your browser in the demo; on the live server the text is checked and not stored.</div>
         <textarea id="sh-text" rows="6" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit" placeholder="e.g. Your electricity connection will be disconnected tonight. Call 9876543210 immediately"></textarea>
         <div class="chips" id="sh-samples" style="padding:8px 0"></div>
+        <div class="note" style="margin:6px 0 2px">Or try a <b>real</b> message, with its true label:</div>
+        <div class="chips" id="sh-real" style="padding:2px 0 8px"></div>
         <button class="btn pri" id="sh-go">Check</button>
       </div></div>
       <div class="card"><h3>What this can and cannot do</h3><div class="body note" style="line-height:1.6">It reads wording and structure against known Indian scam patterns (OTP and PIN requests, screen-sharing apps, electricity-bill threats, fake KYC, 'digital arrest', look-alike payment handles, bad links). On the live server it also asks the risk engine whether the payee has many first-time senders or fraud complaints. It <b>cannot</b> tell who owns a payment handle, so it never says "safe".</div></div>
@@ -205,6 +221,7 @@
 <script src="static/lib.js"></script>
 <script src="static/live.js"></script>
 <script src="static/shield.js"></script>
+<script src="static/realdata.js"></script>
 <script src="static/tabs.js"></script>
 </body>
 </html>
