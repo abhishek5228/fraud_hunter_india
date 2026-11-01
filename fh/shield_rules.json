@@ -36,7 +36,7 @@
   {
    "id": "apk",
    "w": 55,
-   "re": "\\.apk\\b",
+   "re": "(install|download|open|click|tap).{0,50}\\.apk\\b|https?://\\S+\\.apk\\b",
    "en": "Contains an APK file. Installing an app outside the Play Store or App Store is a common way phones are taken over.",
    "hi": "APK फ़ाइल है। Play Store/App Store के बाहर से ऐप डालना फ़ोन हैक होने का आम तरीका है।"
   },
@@ -50,7 +50,7 @@
   {
    "id": "threat_urgent",
    "w": 30,
-   "re": "(disconnect|blocked|block ho|suspend|frozen|freeze|expire|deactivat|band ho|kat (jayega|jaayegi|jaega)|cut ho|legal action|arrest|warrant).{0,70}(today|tonight|now|immediately|within|24 ?h|aaj|abhi|raat|turant)|(today|tonight|immediately|aaj|abhi|turant).{0,70}(disconnect|blocked|block ho|suspend|freeze|expire|band ho|kat (jayega|jaayegi|jaega)|legal action|arrest)",
+   "re": "(disconnect|blocked|block ho|suspend|frozen|freeze|(will|about to|going to|soon) expire|expires\\b|expiring|deactivat|band ho|kat (jayega|jaayegi|jaega)|cut ho|legal action|arrest|warrant).{0,70}(today|tonight|now|immediately|within|24 ?h|aaj|abhi|raat|turant)|(today|tonight|immediately|aaj|abhi|turant).{0,70}(disconnect|blocked|block ho|suspend|freeze|(will|about to|going to|soon) expire|expires\\b|expiring|band ho|kat (jayega|jaayegi|jaega)|legal action|arrest)",
    "en": "Threatens something bad unless you act right now. Scammers use urgency so you do not stop to think.",
    "hi": "अभी कुछ न किया तो नुकसान की धमकी दे रहा है। ठग जल्दबाज़ी इसलिए कराते हैं कि आप सोच न सकें।"
   },
@@ -78,7 +78,7 @@
   {
    "id": "prize",
    "w": 40,
-   "re": "lottery|\\bkbc\\b|lucky draw|you have won|you won|jackpot|prize money|inaam",
+   "re": "lottery|\\bkbc\\b.{0,40}(lottery|winner|won|prize|lucky|whatsapp)|lucky draw|you have won|\\byou won(?!['’]?t)\\b|jackpot|prize money|inaam",
    "en": "A prize or lottery message. If you did not enter, you did not win.",
    "hi": "इनाम या लॉटरी का संदेश। आपने हिस्सा नहीं लिया तो आप जीते नहीं।"
   },
@@ -109,6 +109,83 @@
    "re": "[a-z0-9._\\-]*(support|helpdesk|customercare|kyc|refund|helpline|official|verify|reward|cashback|bijli|electricity|police|cbi|rbi|npci|sbibank)[a-z0-9._\\-]*@[a-z]{2,}",
    "en": "A payment handle that imitates an official name (support, refund, KYC, a bank). Real organisations do not collect money on personal-looking UPI handles.",
    "hi": "ऐसा UPI हैंडल जो आधिकारिक नाम की नकल करता है (support, refund, KYC, बैंक)। असली संस्थाएं निजी जैसे UPI हैंडल पर पैसे नहीं लेतीं।"
+  },
+  {
+   "id": "parcel_fee",
+   "w": 40,
+   "re": "(package|parcel|shipment|delivery|courier|order).{0,80}(cannot be delivered|could not be delivered|couldn.t be delivered|on hold|incomplete (address|street)|customs|redeliver|confirm your address|update your address|unpaid|held at)",
+   "en": "A parcel or courier message about a held delivery, a fee or an address 'update'. Real couriers track parcels in their own app or website; do not pay or enter details through a link in a text.",
+   "hi": "रुकी हुई डिलीवरी, फ़ीस या पता 'अपडेट' करने वाला पार्सल/कूरियर संदेश। असली कूरियर कंपनी अपने ऐप या वेबसाइट पर ट्रैकिंग दिखाती है; संदेश के लिंक पर पैसे या जानकारी न दें।"
+  },
+  {
+   "id": "account_locked",
+   "w": 35,
+   "re": "(account|card|profile|debit|credit).{0,40}(locked|suspended|restricted|on hold|temporar\\w+ (locked|restricted)|unusual (activit|transaction)|signed in (from|on|to)? ?(a )?new device)|unusual (activit|transaction)s? .{0,40}(account|card)",
+   "en": "Says your account or card is locked or shows unusual activity. Open your bank's official app yourself instead of using a link in the message.",
+   "hi": "कहता है कि आपका अकाउंट या कार्ड लॉक है या संदिग्ध गतिविधि हुई है। संदेश के लिंक की जगह बैंक का आधिकारिक ऐप खुद खोलकर जांचें।"
+  },
+  {
+   "id": "odd_tld_link",
+   "w": 30,
+   "re": "https?://[a-z0-9.-]+\\.(xyz|top|info|online|site|click|live|shop|icu|cc|vip|club|buzz|directory|boutique|mom|work|pw|ru|tk|ml|ga|cf|gq|cyou|sbs|rest|bond|ink)\\b|\\b[a-z0-9-]+(\\.[a-z0-9-]+)*\\.(xyz|top|info|online|site|click|live|shop|icu|cc|vip|club|buzz|directory|boutique|mom|work|pw|ru|tk|ml|ga|cf|gq|cyou|sbs|rest|bond|ink)/\\S+",
+   "en": "A web address ending that scammers favour (such as .xyz or .top). These often lead to fake sites.",
+   "hi": "ऐसे वेब-एड्रेस का अंत (जैसे .xyz, .top) जो ठग पसंद करते हैं। ये अक्सर नकली साइट पर ले जाते हैं।"
+  },
+  {
+   "id": "tax_refund",
+   "w": 35,
+   "re": "\\birs\\b|i\\.r\\.s|tax refund|income.?tax refund|itr refund|treasury department|refund of (\\$|rs\\.?|₹)\\s?\\d|\\$\\d[\\d,.]* refund",
+   "en": "A tax-refund or government-department message with a link. Tax departments do not collect your details through text links; check on the official website yourself.",
+   "hi": "लिंक के साथ टैक्स रिफंड या सरकारी विभाग का संदेश। कर विभाग आमतौर पर टेक्स्ट के लिंक से जानकारी नहीं मांगता; आधिकारिक वेबसाइट पर खुद जांचें।"
+  },
+  {
+   "id": "survey_reward",
+   "w": 30,
+   "re": "(selected|picked|randomly selected|chosen).{0,50}(survey|reward|gift|prize|customers)|survey.{0,60}(reward|redeem|\\$\\s?\\d|paid for your time|gift)|(awarding|win|earn) \\$\\s?\\d.{0,60}(survey|inquiry|complete)",
+   "en": "Offers a reward or money for filling a survey. This is a common way to collect personal details or card numbers.",
+   "hi": "सर्वे भरने पर इनाम या पैसे का लालच। यह निजी जानकारी या कार्ड नंबर इकट्ठा करने का आम तरीका है।"
+  },
+  {
+   "id": "earn_per_day",
+   "w": 35,
+   "re": "(salary|earn|income|get paid|stable income).{0,40}(\\$|rs\\.?|₹|taka|usd)?\\s?\\d[\\d,\\-]*.{0,25}(per day|a day|daily|every week|a week|an hour|per hour|each day)|(per day|a day|daily).{0,30}(salary|income|earn)",
+   "en": "Promises a daily or weekly income for easy work. Real jobs do not start with a message like this, and these offers often ask you to deposit money later.",
+   "hi": "आसान काम पर रोज़ाना या साप्ताहिक कमाई का वादा। असली नौकरी ऐसे संदेश से शुरू नहीं होती, और ऐसे ऑफ़र अक्सर बाद में पैसे जमा करवाते हैं।"
+  },
+  {
+   "id": "adult_bait",
+   "w": 35,
+   "re": "^(?=[\\s\\S]*(https?://|\\b[a-z0-9-]+\\.[a-z]{2,}/\\S))[\\s\\S]*(x-?photos?|nude|fool around|intimate invite|sext|add me here|opened her (x|photos)|hubby left|triple x|boner|viagra)",
+   "en": "Bait about photos, chats or dating from a stranger, with a link. It is often the start of a scam or blackmail.",
+   "hi": "अनजान व्यक्ति की तस्वीरों, चैट या डेटिंग का लालच, लिंक के साथ। यह अक्सर ठगी या ब्लैकमेल की शुरुआत होती है।"
+  },
+  {
+   "id": "crypto_group",
+   "w": 35,
+   "re": "(btc|crypto|bitcoin|usdt|forex|stock tips?).{0,70}(earn|group|profit|invest|daily|\\$\\s?\\d)",
+   "en": "An investment or crypto 'group' promising daily profit. This is a common investment scam.",
+   "hi": "रोज़ाना मुनाफ़े का वादा करने वाला निवेश या क्रिप्टो 'ग्रुप'। यह निवेश ठगी का आम तरीका है।"
+  },
+  {
+   "id": "subscription_failed",
+   "w": 40,
+   "re": "(netflix|neftlix|amazon|apple|paypal|microsoft|spotify|hotstar|prime|disney|icloud).{0,70}(payment|billing|membership|subscription|account).{0,70}(couldn.t|could not|failed|issue|problem|on hold|restricted|locked|expired|suspended|update)",
+   "en": "Says a subscription payment failed and asks you to update details. Open the service's own app to check instead of using the link.",
+   "hi": "कहता है कि सब्सक्रिप्शन का भुगतान फ़ेल हुआ और जानकारी अपडेट करने को कहता है। लिंक की जगह उस सेवा का अपना ऐप खुद खोलकर जांचें।"
+  },
+  {
+   "id": "reply_then_click",
+   "w": 35,
+   "re": "reply\\s+(y|1|yes)\\b.{0,100}(link|click|activate|open)|(exit|close) the (text )?message and open it again",
+   "en": "Tells you to reply 'Y' or '1' and then open a link. Scammers do this to make the link clickable and to confirm your number is active.",
+   "hi": "'Y' या '1' भेजने और फिर लिंक खोलने को कहता है। ठग इससे लिंक चालू करवाते हैं और पक्का करते हैं कि आपका नंबर चालू है।"
+  },
+  {
+   "id": "brand_with_link",
+   "w": 25,
+   "re": "^(?=[\\s\\S]*\\b(usps|fedex|ups|dhl|royal mail|india post|bluedart|delhivery|dtdc|amazon|netflix|chase|wells fargo|bofa|bank of america|citibank|navy ?federal|irs|hdfc|sbi|icici|axis|paytm|phonepe|google pay|hotstar|flipkart|jio|airtel)\\b)(?=[\\s\\S]*(https?://|\\b[a-z0-9-]+\\.[a-z]{2,}/\\S))[\\s\\S]*$",
+   "en": "Uses a well-known brand or bank name together with a link. Anyone can copy a name; go to the real app or website yourself.",
+   "hi": "किसी जाने-पहचाने ब्रांड या बैंक के नाम के साथ लिंक। नाम की नकल कोई भी कर सकता है; असली ऐप या वेबसाइट खुद खोलें।"
   }
  ],
  "network": {
