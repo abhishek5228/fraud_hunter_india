@@ -17,3 +17,8 @@ def test_upi_limit_rule_fires_only_above_ten_lakh():
     assert "EXCEEDS_UPI_LIMIT" not in codes(amt=1_000_000)
     assert "EXCEEDS_UPI_LIMIT" in codes(amt=1_000_001)
     assert "EXCEEDS_UPI_LIMIT" not in codes(amt=2_000_000, chan="imps")
+
+
+def test_new_customer_high_value_needs_both_a_stranger_and_a_big_amount():
+    assert "NEW_CUSTOMER_HIGH_VALUE" in codes(amt=100_000)
+    assert "NEW_CUSTOMER_HIGH_VALUE" not in codes(amt=99_999)
