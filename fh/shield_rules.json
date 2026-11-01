@@ -22,7 +22,7 @@
   {
    "id": "collect_approve",
    "w": 40,
-   "re": "(approve|accept|confirm).{0,25}(collect|request|mandate)",
+   "re": "(approve|accept|confirm).{0,25}collect|(approve|accept|confirm).{0,25}request.{0,40}(refund|money|payment|amount|rs\\.?\\s?\\d|₹|cashback)",
    "en": "Asks you to approve a collect or payment request. Approving one sends money out of your account.",
    "hi": "कलेक्ट/पेमेंट रिक्वेस्ट मंज़ूर करने को कह रहा है। मंज़ूर करने पर आपके खाते से पैसे कट जाते हैं।"
   },
