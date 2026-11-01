@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.mp4 binary
+docs/index.html linguist-generated=true
+docs/live/** linguist-generated=true
+docs/openapi.json linguist-generated=true
+docs/FraudHunter.postman_collection.json linguist-generated=true
