@@ -58,3 +58,8 @@ def test_rule_kyc_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
 def test_rule_call_number_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
     assert "call_number" in ids('Please call 9876543210 now')
     assert "call_number" not in ids('Our office number is listed on the website')
+
+
+def test_rule_prize_fires_on_a_scam_and_stays_quiet_on_an_innocent_message():
+    assert "prize" in ids('You have won a lottery of 25 lakh')
+    assert "prize" not in ids('The quiz team won the district trophy')
