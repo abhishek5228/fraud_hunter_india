@@ -16,3 +16,10 @@ def test_inr_uses_indian_digit_grouping():
 def test_haversine_mumbai_to_delhi_is_about_1150_km():
     assert 1130 < geo.hav(19.08, 72.88, 28.61, 77.21) < 1170
     assert geo.hav(19.08, 72.88, 19.08, 72.88) == 0
+
+
+def test_ingest_maps_channel_words_to_rails():
+    assert ingest._chan("CASH_OUT", "upi") == "atm"
+    assert ingest._chan("NEFT", "upi") == "imps"
+    assert ingest._chan("Debit Card", "upi") == "ecom"
+    assert ingest._chan("", "upi") == "upi"
