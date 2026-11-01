@@ -5,7 +5,7 @@
 **A real-time risk engine for Indian digital payments. It chooses the cheapest safe action for every UPI, IMPS, card and ATM payment, and says why in words an analyst or a customer can act on.**
 
 [![tests](https://img.shields.io/github/actions/workflow/status/abhishekisagemai-bot/fraud_hunter/ci.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/abhishekisagemai-bot/fraud_hunter/actions)
-[![134 tests](https://img.shields.io/badge/tests-134%20passing-2ec866?style=for-the-badge)](#tests)
+[![143 tests](https://img.shields.io/badge/tests-143%20passing-2ec866?style=for-the-badge)](#tests)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b48cf2?style=for-the-badge)](LICENSE)
 [![Data: synthetic](https://img.shields.io/badge/Data-synthetic-e0a21a?style=for-the-badge)](#what-is-and-is-not-real)
@@ -58,7 +58,7 @@ For every payment the engine returns **one of three answers**, a score, the reas
 | **STEP-UP** | Ask the customer to prove it is them (OTP or in-app confirmation) before releasing the money. | ₹22,000 card payment, first time on a brand-new phone, to a shop never paid before. |
 | **DECLINE** | Stop it, and tell the customer how to report it. | ₹18,500 to a first-time person while a screen-sharing app is running. |
 
-And around that core, **52 working features** that make it usable in the real world: a console with ten tabs, a CSV backtest, an engine that attacks itself, a scam checker for customers, a mule-network graph, a Razorpay webhook, Telegram alerts, an analyst copilot, a fairness audit, SDKs, and a private way for banks to warn each other. They are all explained below, one by one, each with an example.
+And around that core, **54 working features** that make it usable in the real world: a console with eleven tabs, a CSV backtest, an engine that attacks itself, a scam checker for customers, a mule-network graph, a Razorpay webhook, Telegram alerts, an analyst copilot, a fairness audit, SDKs, and a private way for banks to warn each other. They are all explained below, one by one, each with an example.
 
 ## Contents
 
@@ -82,13 +82,16 @@ And around that core, **52 working features** that make it usable in the real wo
 **Part 6. Ship it**
 [46 Docker](#46-docker) · [47 Render](#47-one-click-render-blueprint) · [48 Static demo](#48-a-demo-that-needs-no-server) · [49 GitHub Pages](#49-github-pages) · [50 CI](#50-continuous-integration) · [51 Demo video](#51-demo-video-and-script) · [52 Make targets](#52-one-line-commands)
 
+**Part 7. Real public data**
+[53 The Real data tab](#53-the-real-data-tab) · [54 Data provenance on every tab](#54-data-provenance-on-every-tab)
+
 **The numbers and the honesty:** [Measured results](#measured-results) · [What failed first](#what-failed-first) · [Where it is weak](#where-it-is-weak-shown-not-hidden) · [Bounded by design](#bounded-by-design) · [Reference](#reference) · [Layout](#layout) · [Tests](#tests) · [Limitations](#limitations)
 
 ## Try it live
 
 | | Link | What it is |
 |---|---|---|
-| **Full console** | https://fraud-hunter-api.onrender.com/ | The real engine, all ten tabs, simulated traffic, the Scam Shield, the mule graph, the Live wire. The free plan sleeps when idle: wait up to a minute on the first load. |
+| **Full console** | https://fraud-hunter-api.onrender.com/ | The real engine, all eleven tabs, simulated traffic, the Scam Shield, the mule graph, the Live wire. The free plan sleeps when idle: wait up to a minute on the first load. |
 | **Demo, no server** | https://abhishekisagemai-bot.github.io/fraud_hunter/ | One static page that replays real recorded decisions. Uploads, the webhook, alerts and the load test say they need a backend. |
 | **Frontend for the hosted API** | https://abhishekisagemai-bot.github.io/fraud_hunter/live/ | The same console served from GitHub Pages, talking to the Render API. |
 | **API reference** | https://fraud-hunter-api.onrender.com/docs | Interactive docs for every endpoint. |
@@ -106,7 +109,7 @@ python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\a
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # now open http://localhost:8000
-python -m pytest -q tests                   # 134 tests
+python -m pytest -q tests                   # 143 tests
 ```
 
 No Python? `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`. No server at all? Open [`docs/index.html`](docs/index.html): a single file that replays real recorded decisions from disk.
@@ -367,7 +370,7 @@ The message tells the customer what to do about *this* scam (here, stop sharing 
 
 # Part 2. The console
 
-Ten tabs, one frontend, no build step. Everything below is in `web/`.
+Eleven tabs, one frontend, no build step. Everything below is in `web/`.
 
 ## 14. Live ops
 
@@ -491,7 +494,7 @@ last month bill is not updated. Call 9876543210 immediately.
 
 **On a live server it also does three things the demo cannot:** asks the engine whether the payee has many first-time senders or fraud complaints; with `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` set, asks Razorpay who the handle is **registered to** and flags a name that does not match the QR (a QR that says "State Electricity Board" but the handle belongs to "Rakesh Kumar Yadav"); and accepts guarded complaint reports (`POST /api/shield/report`) about a handle.
 
-**Tested on real text messages** (see [docs/BENCHMARKS.md](docs/BENCHMARKS.md)). On a held-out half of about 27,000 real messages it flags **46.6% of real smishing** (it was 7.8% before real data showed me what scams look like) while falsely flagging **0.04% of ordinary texts** (0.09% of 3,487 real texts sent from India). More than half of real smishing is still missed, the smishing data is mostly US, and **the Indian-specific rules are not validated on real Indian scam texts** because I could not reach such a corpus.
+**Tested on real text messages** (see [docs/BENCHMARKS.md](docs/BENCHMARKS.md)). On a held-out half of about 27,000 real messages it flags **46.4% of real smishing** (it was 7.8% before real data showed me what scams look like) while falsely flagging **0.05% of ordinary texts** (0.06% of 3,487 real texts sent from India). More than half of real smishing is still missed, the smishing data is mostly US, and **the Indian-specific rules are not validated on real Indian scam texts** because I could not reach such a corpus.
 
 **Honest limit.** It reads wording and structure. Without the Razorpay lookup it **cannot tell who owns a handle**, so it never says "safe". The best it says is "no known scam pattern found", and explains why that is not a guarantee. The Razorpay lookup is untested against the live API (the feature must be enabled on your account).
 
@@ -854,6 +857,46 @@ make demo      # rebuild the backend-free demo, end to end
 
 ---
 
+# Part 7. Real public data
+
+## 53. The Real data tab
+
+**The problem.** Everything in the console runs on a simulator, so a judge, a recruiter or you can fairly ask: "is any of this tested on anything real?" This tab answers with a button instead of a document.
+
+**What you can do, with no terminal and no file to upload first:**
+
+| Step | What happens |
+|---|---|
+| **Download from source** | The server fetches the dataset from its fixed public address (never an address you type, so it cannot be pointed elsewhere). Each file is parsed and its counts checked against the published ones: *"ON THE SERVER, VERIFIED, 284,807 rows, 492 fraud"*. A file that does not match says so. |
+| **Upload my own copy** | For anything not on the server, or to test your own file. Streamed to disk under a size limit and **parsed before it is accepted**, so a wrong file never replaces a good one. Uploads are off unless `FH_API_KEY` (recommended) or `FH_ALLOW_UPLOADS=1` is set. |
+| **1. Run on the real card-fraud data** | Fits the additive model and logistic regression on the earliest 65% of 284,807 real transactions and tests on the latest 20% (75 fraud). Shows AUC, average precision, a bootstrap interval and recall, next to the outside baselines (scikit-learn) recorded earlier. About 20 seconds. |
+| **2. Replay real card transactions** | The real test period, payment by payment, scored by the model you just fitted: *flagged or approved* against *REAL FRAUD or genuine*, with running counts of fraud caught, fraud missed and genuine payments flagged. A speed control and **Jump to the next real fraud**. |
+| **3. Scam Shield on real text messages** | Runs the 26 rules over the held-out half of about 27,000 real messages. Plus, on the **Scam Shield tab**, buttons that load *a real smishing text*, *a real spam*, *a real ordinary SMS* or *a real SMS from India* with its true label, so you can see it get one right or wrong. |
+
+**Example (real numbers, from running the tab):** fit on the real data in 20 seconds; additive model average precision **0.760** (95% interval 0.670 to 0.843), logistic regression 0.704; at the replay's threshold the model catches **64 of the 75 real frauds** and flags **448 of about 56,000 genuine payments**.
+
+**Honest limits.**
+- The card data was anonymised with PCA and has **no customer, device or payee ids**, so it tests the *model*, not the behavioural feature store or the guardrail rules. No public dataset with customer-level history and Indian payment fraud exists that I could find.
+- With 75 fraud in the test set, the gaps between models are inside the intervals.
+- The smishing data is mostly US and English. **The Indian-specific rules are not validated on real Indian scam texts.**
+- The ULB download address (a public Google storage file used in a TensorFlow tutorial) could not be reached from the sandbox where this was built, so that one download path is untested; the same code was tested with the real file, and the other three datasets were downloaded end to end. If it fails on your server, upload the file instead.
+- Results are on the server you run it on: nothing is stored in the repository.
+
+## 54. Data provenance on every tab
+
+Every tab now starts with a one-line strip that says what kind of data it shows, so nothing real can be confused with something simulated.
+
+| Tab | Label | Meaning |
+|---|---|---|
+| Live ops, Review, Red team, Mule graph, Policy lab, Model card | **SIMULATED** | Generated by the simulator. There is no public stream of real Indian payments to replace it with. |
+| Live wire | **REAL (Razorpay TEST MODE)** | Signed webhook events from Razorpay's test mode. |
+| Real data | **REAL PUBLIC DATA** | Real card transactions and real text messages from public research datasets. |
+| Backtest, Scam Shield, Playground | **YOUR FILE / YOUR INPUT** | Whatever you give it. |
+
+**What I could not make real.** Live ops, the review queue, the mule graph, the fairness report and the red team all need customer-level payment histories with fraud labels, which no public source provides for Indian payments. They stay simulated and say so on the tab. The honest way to make them real is a bank's data in shadow mode ([feature 37](#37-fit-the-model-to-your-csv)).
+
+---
+
 # The numbers and the honesty
 
 ## Measured results
@@ -886,7 +929,7 @@ The tuned baselines were fitted on this very period, which flatters them. The am
 | Backtest on the 45-day sample (35,575 scored payments) | 99.0% of fraud caught, 3.84% of good customers touched, cost about ₹0.97 lakh against ₹1.04 crore for approving everything |
 | Red team, shipped model | attacker's median haul ₹2.56 lakh per customer; ₹35,400 after one round of hardening |
 | Speed | about 9,000 to 13,000 payments per second on one Python thread, p99 about 0.25 ms |
-| Tests | 134 |
+| Tests | 143 |
 
 ## What failed first
 
@@ -914,7 +957,7 @@ The design came after several wrong turns, and they are why it looks the way it 
 - **Shared kiosk phones** still draw about 14% friction.
 - **"Never seen on the platform" is stronger in the simulator than it would be in reality**, because every legitimate payee here is an existing customer.
 - The **SIM-change signal** assumes telecom data that only some banks receive; the simulator reflects that with 60% coverage.
-- **Scam Shield misses most generic smishing.** 46.6% of real smishing flagged; link-only texts, "wrong number" openers and dating baits slip through. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+- **Scam Shield misses most generic smishing.** 46.4% of real smishing flagged; link-only texts, "wrong number" openers and dating baits slip through. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 - **Red team:** hardening beyond round 1 does not reliably help, and costs friction.
 - **Razorpay** is merchant-side, and a webhook arrives after authorisation.
 - Several integrations were tested against **fakes only**: the Razorpay VPA lookup, the Gemini and Claude calls, Telegram and IPinfo from the sandbox, and the Docker build.
@@ -994,11 +1037,12 @@ fh/
   consortium.py     keyed-hash sharing
   psi.py            private set intersection
   audit.py, persist.py   audit log, state snapshots
+  realdata.py       real public datasets: fetch, verify, upload, benchmarks, replay
   api.py            FastAPI service, SSE, all endpoints
 web/                dashboard: no build step (index.html, lib.js, live.js, tabs.js, shield.js, demo.js, style.css)
 sdk/                python/ and js/ clients
 tools/              site and demo builders, OpenAPI export, load test, LLM check, video
-tests/              134 tests
+tests/              143 tests
 docs/               screenshots, demo.mp4, openapi.json, Postman collection, static demo
 ```
 
@@ -1013,6 +1057,7 @@ docs/               screenshots, demo.mp4, openapi.json, Postman collection, sta
 | `tests/test_fit.py` | 6 | CSV mapping, leakage removal, events and tabular fits |
 | `tests/test_shield_rules.py` | 27 | One test per Scam Shield rule (26 rules), plus regressions for the false alarms real text messages exposed |
 | `tests/test_shield_parity.py` | 1 | The browser and the server implement the same rules identically on every fixture |
+| `tests/test_realdata.py` | 9 | The Real data tab's backend: download, verified counts, uploads (off without a key, rejected when wrong), both benchmarks, the replay with its truth, real samples |
 | `tests/test_rule_edges.py` | 5 | Where the guardrail rules start and stop firing (Rs 10 lakh, Rs 1 lakh, card-testing bursts, screen-share, structuring) |
 | `tests/test_helpers.py` | 6 | Rupee formatting, distance, CSV channel, city and label mapping, name matching |
 

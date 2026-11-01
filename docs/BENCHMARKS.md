@@ -11,6 +11,10 @@ Everything else in this repository is measured on a simulator. This page is the 
 
 **Where I got the copies.** The sandbox this was built in could reach only GitHub, so I used public GitHub mirrors: `KernelBypass/antifraud` for the ULB file (284,807 rows and 492 fraud, matching the published counts) and `Joshoneill6649/smishing-nlp-josh-oneill` for Smishtank, the UCI collection and the NUS corpus. Check them against the original sources before quoting numbers: Kaggle `mlg-ulb/creditcardfraud`, UCI dataset 228, smishtank.com. The data is **not** redistributed here.
 
+## 0. Run it from the console
+
+The **Real data** tab runs all of this without a terminal: it downloads each dataset from its source onto the server (or accepts your own copy as an upload), runs the card-fraud benchmark and the Scam Shield test, and **replays the real card transactions** one by one through the fitted model, showing what the model said and what actually happened. The numbers it produces on the server are the ones in this page (the card-fraud fit is deterministic; Scam Shield uses the same fixed split). Uploads are off unless `FH_API_KEY` or `FH_ALLOW_UPLOADS=1` is set.
+
 ## 1. The additive model on real card fraud
 
 ```bash
@@ -46,23 +50,23 @@ The real messages are split 50/50 by a fixed seed into **DEV** and **TEST**. I c
 
 | On the TEST half | Before (15 rules) | After (26 rules) |
 |---|---:|---:|
-| Real smishing flagged (caution or higher), n=528 | **7.8%** | **46.6%** |
+| Real smishing flagged (caution or higher), n=528 | **7.8%** | **46.4%** |
 | Real smishing rated danger | 0.0% | 7.0% |
-| Real SMS spam flagged (UCI), n=327 | 5.2% | 6.7% |
-| Ordinary UCI messages falsely flagged, n=2,259 | 0.22% | 0.13% |
-| Ordinary NUS messages falsely flagged, n=24,310 | 0.08% | 0.03% |
-| &nbsp;&nbsp;of those, sent from India, n=3,487 | n/a | 0.09% |
-| Precision on this mix (528 smishing vs 26,569 ordinary) | 63.1% | 95.7% |
+| Real SMS spam flagged (UCI), n=321 | 4.0% | 4.7% |
+| Ordinary UCI messages falsely flagged, n=2,259 | 0.22% | 0.09% |
+| Ordinary NUS messages falsely flagged, n=24,311 | 0.09% | 0.05% |
+| &nbsp;&nbsp;of those, sent from India, n=3,487 | 0.09% | 0.06% |
+| Precision on this mix (528 smishing vs 26,570 ordinary) | 60.3% | 94.6% |
 
 **What the real data taught me (all of it was fixed on DEV):**
 1. The first version caught **7.8%** of real smishing. The rules were written for Indian bank and UPI scams (OTP, PIN, screen-share, KYC) and real smishing is mostly parcel fees, "your account is locked", fake refunds, subscription failures and bait messages. I added eleven generic rules for those.
 2. Real ordinary texts exposed **false alarms I would not have found by hand**: "you won't" matched the prize rule (`you won`), a friend discussing an `.apk` file, a "KBC" joke, Singlish "ok.lol." read as a web address, and "his mother expired" matched an urgent-threat rule. All fixed, each now has a regression test.
-3. DEV recall reached 54.5% and TEST recall is 46.6%. The gap between the two is the honest cost of tuning on the data you can see.
+3. DEV recall reached 54.1% and TEST recall is 46.4%. The gap between the two is the honest cost of tuning on the data you can see.
 
 **What these numbers do not mean.**
-- The smishing data is mostly **US and English** (USPS, Netflix, banks). It is real, but not Indian. **I could not reach a labelled corpus of real Indian bank-scam messages** (the ones I found were on hosts the sandbox could not open, or were machine-generated). The Indian-specific rules (electricity bills, KYC, digital arrest, UPI handles) are therefore **not validated on real Indian scam texts**. They are validated only against real Indian ordinary texts (0.09% false alarms on 3,487).
+- The smishing data is mostly **US and English** (USPS, Netflix, banks). It is real, but not Indian. **I could not reach a labelled corpus of real Indian bank-scam messages** (the ones I found were on hosts the sandbox could not open, or were machine-generated). The Indian-specific rules (electricity bills, KYC, digital arrest, UPI handles) are therefore **not validated on real Indian scam texts**. They are validated only against real Indian ordinary texts (0.06% false alarms on 3,487).
 - **More than half of real smishing is still missed**, for example link-only messages, "wrong number" openers and dating baits with no keyword.
-- **Precision depends on how common scams are.** 95.7% is for a mix of about 2% smishing. If 1 text in 1,000 were smishing, the same rates would give roughly 54% precision, so a warning would be right about half the time. That is still a reasonable warning for a "pause and check" nudge, and a poor one for blocking.
+- **Precision depends on how common scams are.** 94.6% is for a mix of about 2% smishing. If 1 text in 1,000 were smishing, the same rates would give roughly 48% precision, so a warning would be right about half the time. That is still a reasonable warning for a "pause and check" nudge, and a poor one for blocking.
 - Spam is a different thing from smishing. The rules are not trying to catch promotional spam, and they catch few.
 
 ## 3. Browser and server agree

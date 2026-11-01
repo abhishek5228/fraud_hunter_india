@@ -22,7 +22,7 @@
 pip install -r requirements.txt
 python -m fh.train                          # लगभग 35 सेकंड
 python -m uvicorn fh.api:app --port 8000    # फिर http://localhost:8000 खोलें
-python -m pytest -q tests                   # 134 टेस्ट
+python -m pytest -q tests                   # 143 टेस्ट
 ```
 
 बिना सर्वर के डेमो: [`docs/index.html`](docs/index.html) खोलें।
@@ -42,7 +42,7 @@ python -m pytest -q tests                   # 134 टेस्ट
 | **Razorpay (टेस्ट मोड)** | साइन किया हुआ webhook असली भुगतान घटनाओं को इंजन तक लाता है |
 | **निष्पक्षता की जाँच** | कौन से ग्रुप के ईमानदार ग्राहक सबसे ज़्यादा रोके जाते हैं |
 
-सभी 52 फ़ीचर, उदाहरणों और आरेखों के साथ, [अंग्रेज़ी README](README.md) में हैं।
+सभी 54 फ़ीचर, उदाहरणों और आरेखों के साथ, [अंग्रेज़ी README](README.md) में हैं।
 
 ## ईमानदारी से सीमाएँ
 
