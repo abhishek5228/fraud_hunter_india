@@ -35,3 +35,8 @@ def test_screen_share_is_ignored_on_small_payments_to_shops_but_not_to_strangers
     assert "SCREEN_SHARE_ACTIVE" not in codes(amt=40, ratf=True)
     assert "SCREEN_SHARE_ACTIVE" in codes(amt=6000, ratf=True)
     assert "SCREEN_SHARE_NEW_PAYEE" in codes(amt=40, ratf=True, pers=True, nmer=True)
+
+
+def test_limit_structuring_only_applies_to_person_payees():
+    assert "LIMIT_STRUCTURING" in codes(amt=49_500, pers=True, lim=True)
+    assert "LIMIT_STRUCTURING" not in codes(amt=49_500, pers=False, lim=True)
