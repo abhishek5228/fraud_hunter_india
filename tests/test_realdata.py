@@ -12,12 +12,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fh import realdata as rd
 
 
+REAL_FETCH = rd.fetch
+
+
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
     from fh import api
     monkeypatch.setenv("FH_DATA_DIR", str(tmp_path))
     rd.STATE.clear(); rd.JOBS.clear()
+    monkeypatch.setattr(rd, "fetch", lambda i, prog=None: (_ for _ in ()).throw(OSError("offline in tests")))      # tests never touch the network
     with TestClient(api.app) as c:
         yield c, tmp_path
 
@@ -72,7 +76,7 @@ def test_replay_and_benchmark_refuse_politely_without_data(client):
     c, _ = client
     assert c.get("/api/realdata/replay").status_code == 409
     j = wait(c, c.post("/api/realdata/run/ulb").json()["job"])
-    assert j["state"] == "error" and "not on the server" in j["error"]
+    assert j["state"] == "error" and "could not download" in j["error"]
     assert wait(c, c.post("/api/realdata/run/shield").json()["job"])["state"] == "error"
     assert c.post("/api/realdata/run/nope").status_code == 404 and c.get("/api/realdata/job/zzz").status_code == 404
 
@@ -125,6 +129,7 @@ def test_upload_needs_the_api_key_when_one_is_set(client, monkeypatch):
 
 def test_fetch_downloads_only_from_the_fixed_source_and_enforces_the_limit(client, monkeypatch):
     c, d = client
+    monkeypatch.setattr(rd, "fetch", REAL_FETCH)                       # this test exercises the real downloader against a fake network
     seen = []
     class R(io.BytesIO):
         def __enter__(s): return s
@@ -166,3 +171,15 @@ def _fresh_limits():
     api.RATE.clear()
     yield
     api.RATE.clear()
+
+
+def test_benchmarks_fetch_what_a_restarted_server_has_forgotten(client, monkeypatch):
+    c, d = client
+    got = []
+    monkeypatch.setattr(rd, "fetch", lambda i, prog=None: got.append(i) or 1)
+    rd.ensure(["ulb", "smishtank"], lambda *a: None)
+    assert got == ["ulb", "smishtank"]
+    open(rd.path("ulb"), "w").write("x")
+    got.clear()
+    rd.ensure(["ulb"], lambda *a: None)
+    assert got == []                                                   # a file already there is never downloaded again

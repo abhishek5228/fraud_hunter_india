@@ -75,7 +75,7 @@ function table(head, rows) { return el("table", { class: "t" }, el("thead", null
 function renderUlb() {
   const d = RD.L.datasets.find(x => x.id === "ulb"), ok = d.present;
   const host = $("#rd-ulb");
-  runBox(host, ok ? "Run on the real card-fraud data" : "Download the card-fraud data first", "/api/realdata/run/ulb", ok, r => el("div", null,
+  runBox(host, ok ? "Run on the real card-fraud data" : "Download the data (about 144 MB) and run", "/api/realdata/run/ulb", true, r => el("div", null,
     el("div", { class: "note", style: "margin:8px 0" }, fmtN(r.rows) + " real transactions, " + r.fraud + " fraud. " + r.split + ". Test set: " + fmtN(r.test) + " payments with only " + r.test_fraud + " fraud, so the intervals are wide. Took " + r.seconds + " s on this server."),
     table(["Model", "AUC", "Average precision", "95% interval", "Fraud caught at 1% false alarms"], r.models.map(m => [m.name, m.auc.toFixed(3), m.ap.toFixed(3), m.ap_lo.toFixed(3) + " to " + m.ap_hi.toFixed(3), p1(m.rec1)])),
     el("div", { class: "note", style: "margin-top:8px" }, "Recorded earlier with outside baselines (scikit-learn), same split, for context:"),
@@ -84,7 +84,7 @@ function renderUlb() {
 }
 function renderShieldBench() {
   const need = ["smishtank", "uci_sms"].every(i => RD.L.datasets.find(x => x.id === i).present);
-  runBox($("#rd-shield"), need ? "Run Scam Shield on the real messages" : "Download the smishing and SMS collections first", "/api/realdata/run/shield", need, r => el("div", null,
+  runBox($("#rd-shield"), need ? "Run Scam Shield on the real messages" : "Download the message collections and run", "/api/realdata/run/shield", true, r => el("div", null,
     el("div", { class: "note", style: "margin:8px 0" }, r.rules + " rules; " + r.split + " (seed " + r.seed + ")."),
     table(["Real messages (test half)", "n", "Flagged (caution or higher)", "Rated danger"], r.rows.map(x => [x.group, fmtN(x.n), p1(x.caution), p1(x.danger)])),
     el("div", { class: "note", style: "margin-top:8px" }, "Smishing vs ordinary texts: recall " + p1(r.recall) + ", false-alarm rate " + (100 * r.false_alarm).toFixed(2) + "%, precision " + p1(r.precision) + " on a mix of " + fmtN(r.n_smish) + " smishing and " + fmtN(r.n_ordinary) + " ordinary. Precision depends on how common scams are (see BENCHMARKS.md)."),

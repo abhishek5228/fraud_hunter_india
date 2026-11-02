@@ -5,7 +5,7 @@
 **A real-time risk engine for Indian digital payments. It chooses the cheapest safe action for every UPI, IMPS, card and ATM payment, and says why in words an analyst or a customer can act on.**
 
 [![tests](https://img.shields.io/github/actions/workflow/status/antrikakashyap/fraud_hunter/ci.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/antrikakashyap/fraud_hunter/actions)
-[![145 tests](https://img.shields.io/badge/tests-145%20passing-2ec866?style=for-the-badge)](#tests)
+[![146 tests](https://img.shields.io/badge/tests-146%20passing-2ec866?style=for-the-badge)](#tests)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b48cf2?style=for-the-badge)](LICENSE)
 [![Data: synthetic](https://img.shields.io/badge/Data-synthetic-e0a21a?style=for-the-badge)](#what-is-and-is-not-real)
@@ -116,7 +116,7 @@ python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\a
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # now open http://localhost:8000
-python -m pytest -q tests                   # 145 tests
+python -m pytest -q tests                   # 146 tests
 ```
 
 No Python? `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`. No server at all? Open [`docs/index.html`](docs/index.html): a single file that replays real recorded decisions from disk.
@@ -936,7 +936,7 @@ The tuned baselines were fitted on this very period, which flatters them. The am
 | Backtest on the 45-day sample (35,575 scored payments) | 99.0% of fraud caught, 3.84% of good customers touched, cost about ₹0.97 lakh against ₹1.04 crore for approving everything |
 | Red team, shipped model | attacker's median haul ₹2.56 lakh per customer; ₹35,400 after one round of hardening |
 | Speed | about 9,000 to 13,000 payments per second on one Python thread, p99 about 0.25 ms |
-| Tests | 145 |
+| Tests | 146 |
 
 ## What failed first
 
@@ -1049,7 +1049,7 @@ fh/
 web/                dashboard: no build step (index.html, lib.js, live.js, tabs.js, shield.js, demo.js, style.css)
 sdk/                python/ and js/ clients
 tools/              site and demo builders, OpenAPI export, load test, LLM check, video
-tests/              145 tests
+tests/              146 tests
 docs/               screenshots, demo.mp4, openapi.json, Postman collection, static demo
 ```
 

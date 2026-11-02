@@ -243,7 +243,21 @@ def _boot(y, p, k=200, seed=1):
 STATE = {}      # the last ULB run's test rows and scores, for replay
 
 
+def ensure(ids, progress, optional=()):
+    """A free server forgets its files whenever it restarts, so a benchmark fetches what is missing, from the fixed source, first.
+    A failed download of an optional collection is skipped; a required one stops the benchmark with the reason."""
+    for i in ids:
+        if not os.path.exists(path(i)):
+            progress(0.02, "downloading %s from its source" % DATASETS[i]["title"])
+            try:
+                fetch(i)
+            except Exception as e:
+                if i not in optional:
+                    raise ValueError("could not download %s: %s" % (DATASETS[i]["title"], str(e)[:120]))
+
+
 def bench_ulb(progress=lambda *a: None):
+    ensure(["ulb"], progress)
     p = path("ulb")
     if not os.path.exists(p):
         raise ValueError("the card-fraud file is not on the server yet")
@@ -321,6 +335,7 @@ def load_all_texts():
 
 def bench_shield(progress=lambda *a: None, seed=7):
     from . import shield
+    ensure(["smishtank", "uci_sms", "nus_sms"], progress, optional=("nus_sms",))
     progress(0.05, "reading the message collections")
     d = load_all_texts()
     if not d.get("smish"):
