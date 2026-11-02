@@ -3,7 +3,7 @@
 Pick two or three. Each uses only numbers that are measured and reproducible from the repo (`python -m fh.train`, `python -m pytest`, `python -m fh.backtest`). All of them say "simulated" because the data is.
 
 ## Project line
-**Fraud Hunter India** | Python, FastAPI, NumPy, JavaScript, SQLite, Docker | github.com/abhishekisagemai-bot/fraud_hunter
+**Fraud Hunter India** | Python, FastAPI, NumPy, JavaScript, SQLite, Docker | github.com/abhishek5228/fraud_hunter_india
 
 ## Bullets (choose 2 to 4)
 - Built a real-time risk engine for UPI, IMPS and card payments that picks approve, step-up or decline by expected cost in rupees; on a simulated 12-day holdout it caught 98.6% of fraud while touching 2.7% of good customers, at about 12,700 decisions per second on one Python thread.

@@ -152,7 +152,7 @@ async def main():
         await pg.evaluate("window.scrollTo({top: document.body.scrollHeight, behavior:'instant'})")
         await say("Honest about its limits", "Trained on synthetic data. A plain logistic model scores as well. Scams without a screen-share are the hardest case.", 7.5, "12_limits")
         await pg.evaluate("window.scrollTo(0,0)")
-        await say("Fraud Hunter India", "36 tests, one-file demo, Docker and Render ready. github.com/abhishekisagemai-bot/fraud_hunter", 6.0, "13_end")
+        await say("Fraud Hunter India", "36 tests, one-file demo, Docker and Render ready. github.com/abhishek5228/fraud_hunter_india", 6.0, "13_end")
 
         if not PREVIEW:
             path = await pg.video.path()
