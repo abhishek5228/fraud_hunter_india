@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 470" role="img" aria-label="The project in layers: data sources, the engine, the API, the console, and the real-world plumbing and sharing around it">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d172d"/><stop offset="1" stop-color="#14224a"/></linearGradient>
+    <style>.f{font-family:Inter,'Segoe UI',Arial,sans-serif}</style>
+  </defs>
+  <rect width="1200" height="470" rx="20" fill="url(#bg)"/>
+  <text x="40" y="44" class="f" font-size="20" font-weight="800" fill="#fff">The whole project on one page</text>
+  <g class="f">
+    <g transform="translate(40 70)"><rect width="760" height="62" rx="14" fill="#b48cf2" fill-opacity=".18" stroke="#b48cf2"/><text x="20" y="26" font-size="15" font-weight="800" fill="#e5d9ff">CONSOLE: 11 tabs you click</text><text x="20" y="48" font-size="11.8" fill="#d9ccf5">Live ops · Review · Backtest · Red team · Real data · Scam Shield · Mule graph · Live wire · Policy lab · Playground · Model card</text></g>
+    <g transform="translate(40 142)"><rect width="760" height="52" rx="14" fill="#7f93ff" fill-opacity=".18" stroke="#7f93ff"/><text x="20" y="24" font-size="15" font-weight="800" fill="#d6defa">API: FastAPI, live stream, OpenAPI, Python and JavaScript SDKs</text><text x="20" y="43" font-size="13" fill="#c5cffb">score · webhook · shield · graph · backtest · real data · shadow report · audit</text></g>
+    <g transform="translate(40 204)"><rect width="760" height="132" rx="14" fill="#3fd6a6" fill-opacity=".14" stroke="#3fd6a6"/><text x="20" y="26" font-size="15" font-weight="800" fill="#bdeedd">ENGINE: the decision</text>
+      <g font-size="13" fill="#d8f3ea"><text x="20" y="54">1  Streaming feature store: 44 features, never peeks ahead</text><text x="20" y="74">2  Additive model written from scratch, plus a baseline</text><text x="20" y="94">3  Guardrail rules that can only make answers stricter</text><text x="20" y="114">4  Expected-cost policy and two-phase step-up</text></g>
+      <g font-size="13" fill="#d8f3ea"><text x="470" y="54">Reasons in Hindi and English</text><text x="470" y="74">Mule graph and payee reputation</text><text x="470" y="94">Scam Shield: rules + learned part</text><text x="470" y="114">Drift monitor, fairness audit</text></g></g>
+    <g transform="translate(40 346)"><rect width="760" height="62" rx="14" fill="#e0a21a" fill-opacity=".16" stroke="#e0a21a"/><text x="20" y="26" font-size="15" font-weight="800" fill="#f6dfa6">DATA IN: three sources, always labelled</text><text x="20" y="48" font-size="13" fill="#f0e2b8">A simulator of India · your own CSV (ingest, fit, backtest) · real public datasets (ULB cards, real SMS)</text></g>
+
+    <g transform="translate(830 70)"><rect width="330" height="196" rx="14" fill="#ffffff" fill-opacity=".06" stroke="#8ea0ff" stroke-opacity=".5"/><text x="18" y="28" font-size="15" font-weight="800" fill="#fff">REAL-WORLD PLUMBING</text>
+      <g font-size="13" fill="#cfd8f3"><text x="18" y="54">Razorpay webhook (HMAC-checked)</text><text x="18" y="74">IP and VPN intelligence (IPinfo)</text><text x="18" y="94">Telegram and Slack alerts</text><text x="18" y="114">Gemini or Claude wording for briefs</text><text x="18" y="134">Audit log and state snapshots</text><text x="18" y="154">API key, rate limits, size caps</text><text x="18" y="174">Shadow mode: score, never block</text></g></g>
+    <g transform="translate(830 278)"><rect width="330" height="130" rx="14" fill="#ffffff" fill-opacity=".06" stroke="#8ea0ff" stroke-opacity=".5"/><text x="18" y="28" font-size="15" font-weight="800" fill="#fff">BANKS TOGETHER</text>
+      <g font-size="13" fill="#cfd8f3"><text x="18" y="54">Keyed-hash warnings between banks</text><text x="18" y="74">Private set intersection, no shared key</text><text x="18" y="94">Fairness audit with attributes the</text><text x="18" y="112">engine never saw</text></g></g>
+  </g>
+  <text x="600" y="446" text-anchor="middle" class="f" font-size="13" fill="#8fa0ba">57 features in total, each explained below with an example and where it falls short.</text>
+</svg>

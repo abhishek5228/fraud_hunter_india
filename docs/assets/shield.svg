@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" role="img" aria-label="Scam Shield: a message is checked by 26 rules, a small learned model trained on real texts and what the engine knows about the payee, combined into caution or danger">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d172d"/><stop offset="1" stop-color="#14224a"/></linearGradient>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8ea0ff"/></marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000" flood-opacity=".35"/></filter>
+    <style>.f{font-family:Inter,'Segoe UI',Arial,sans-serif}</style>
+  </defs>
+  <rect width="1200" height="440" rx="20" fill="url(#bg)"/>
+  <text x="40" y="44" class="f" font-size="20" font-weight="800" fill="#fff">Scam Shield: check the message before you pay</text>
+
+  <g class="f" filter="url(#sh)">
+    <rect x="40" y="78" width="250" height="150" rx="14" fill="#f4f7ff"/>
+    <text x="58" y="106" font-size="13" font-weight="800" fill="#3b57e0">PASTE ANYTHING</text>
+    <text x="58" y="130" font-size="13" fill="#1b2638">An SMS, a UPI id, a upi://pay</text><text x="58" y="148" font-size="13" fill="#1b2638">QR link or a web link.</text>
+    <rect x="58" y="164" width="214" height="46" rx="8" fill="#e9eefc"/><text x="68" y="184" font-size="12" fill="#4a5a76">"Your SBI account is suspended.</text><text x="68" y="200" font-size="12" fill="#4a5a76">Update now: sbi-kyc.xyz/login"</text>
+  </g>
+  <g stroke="#8ea0ff" stroke-width="2.2" marker-end="url(#a)" fill="none"><path d="M292 120H342"/><path d="M292 153H342"/><path d="M292 186H342"/></g>
+
+  <g class="f" filter="url(#sh)">
+    <g transform="translate(344 78)"><rect width="330" height="94" rx="14" fill="#f4f7ff"/><text x="18" y="28" font-size="15" font-weight="800" fill="#1b2638">26 hand-written rules</text><text x="18" y="50" font-size="12.5" fill="#4a5a76">OTP and PIN asks, screen-share apps, fake KYC,</text><text x="18" y="67" font-size="12.5" fill="#4a5a76">bill threats, digital arrest, parcel fees, fake</text><text x="18" y="84" font-size="12.5" fill="#4a5a76">refunds, bad web endings. English, Hindi, Hinglish.</text></g>
+    <g transform="translate(344 180)"><rect width="330" height="82" rx="14" fill="#f4f7ff"/><text x="18" y="28" font-size="15" font-weight="800" fill="#1b2638">A small learned part</text><text x="18" y="50" font-size="12.5" fill="#4a5a76">About 700 words and word pairs, trained on real</text><text x="18" y="67" font-size="12.5" fill="#4a5a76">public SMS. The browser runs the same model.</text></g>
+    <g transform="translate(344 270)"><rect width="330" height="82" rx="14" fill="#f4f7ff"/><text x="18" y="28" font-size="15" font-weight="800" fill="#1b2638">What the engine knows</text><text x="18" y="50" font-size="12.5" fill="#4a5a76">How many strangers paid this handle for the first</text><text x="18" y="67" font-size="12.5" fill="#4a5a76">time, and any fraud complaints against it.</text></g>
+  </g>
+  <g stroke="#8ea0ff" stroke-width="2.2" marker-end="url(#a)" fill="none"><path d="M676 125H736"/><path d="M676 221H736"/><path d="M676 311H736V260"/></g>
+
+  <g class="f" filter="url(#sh)">
+    <g transform="translate(738 100)"><rect width="190" height="180" rx="14" fill="#1d2d5a" stroke="#8ea0ff" stroke-opacity=".5"/><text x="95" y="34" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">Add up the signs</text><text x="95" y="60" text-anchor="middle" font-size="12.5" fill="#b9c6e8">like independent clues:</text><text x="95" y="82" text-anchor="middle" font-size="12.5" fill="#b9c6e8">each one raises the</text><text x="95" y="100" text-anchor="middle" font-size="12.5" fill="#b9c6e8">score, none can push</text><text x="95" y="118" text-anchor="middle" font-size="12.5" fill="#b9c6e8">it past 100</text><text x="95" y="156" text-anchor="middle" font-size="22" font-weight="800" fill="#7f93ff">score 0 to 100</text></g>
+  </g>
+  <g stroke="#8ea0ff" stroke-width="2.2" marker-end="url(#a)" fill="none"><path d="M930 190H980"/></g>
+
+  <g class="f" font-weight="800" filter="url(#sh)">
+    <rect x="982" y="86" width="178" height="52" rx="26" fill="#cc2f46"/><text x="1071" y="110" text-anchor="middle" font-size="16" fill="#fff">DANGER</text><text x="1071" y="128" text-anchor="middle" font-size="11.5" fill="#ffd3da" font-weight="600">60 and above: do not pay</text>
+    <rect x="982" y="164" width="178" height="52" rx="26" fill="#e0a21a"/><text x="1071" y="188" text-anchor="middle" font-size="16" fill="#2a1d00">CAUTION</text><text x="1071" y="206" text-anchor="middle" font-size="11.5" fill="#4a3600" font-weight="600">25 and above: verify first</text>
+    <rect x="982" y="242" width="178" height="52" rx="26" fill="#3b4a6f"/><text x="1071" y="266" text-anchor="middle" font-size="14" fill="#fff">NO KNOWN PATTERN</text><text x="1071" y="284" text-anchor="middle" font-size="11.5" fill="#c9d3ee" font-weight="600">never says "safe"</text>
+  </g>
+
+  <g class="f" transform="translate(40 384)">
+    <rect width="1120" height="40" rx="12" fill="#ffffff" fill-opacity=".06" stroke="#8ea0ff" stroke-opacity=".25"/>
+    <text x="20" y="25" font-size="13.5" fill="#cfd8f3">Real smishing flagged, held-out real messages:  <tspan fill="#ff9aab" font-weight="800">7.8%</tspan> first rules  →  <tspan fill="#f0b83a" font-weight="800">45.3%</tspan> 26 rules  →  <tspan fill="#3fd6a6" font-weight="800">63.6%</tspan> with the learned part (about 56% on wording it never saw)</text>
+  </g>
+</svg>

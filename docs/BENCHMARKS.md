@@ -75,7 +75,7 @@ How it was kept honest: it is fitted on the **DEV half only**, its threshold is 
 | Ordinary NUS messages falsely flagged, n=24,311 | 0.03% | 0.04% (9 messages) |
 | &nbsp;&nbsp;of those, sent from India, n=3,487 | 0.06% | 0.09% (3 messages) |
 | Ordinary Indian telecom messages, n=664 | 0.00% | 0.00% |
-| Precision on this mix (528 smishing vs 27,234 ordinary) | 94.6% | 96.6% |
+| Precision on this mix (528 smishing vs 27,234 ordinary) | 96.0% | 96.6% |
 
 **The gain is real but smaller than the headline.** The random split puts near-copies of the same campaign on both sides. Looking only at the 404 TEST messages that are unlike anything in DEV (word overlap with the closest DEV smishing text below 0.6), the rules alone flag **35.1%** and rules plus model flag **55.7%**. The 124 near-copies are flagged 89.5% of the time. So on wording it has never seen, the model adds about 20 points, not 18, but the level to expect on new campaigns is the lower figure.
 

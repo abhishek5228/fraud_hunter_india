@@ -1,43 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Fraud Hunter India: a payment goes in, the cheapest safe action and the reasons come out">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="Fraud Hunter India: every payment gets approve, step-up or decline in about a millisecond, with the reasons attached">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1426"/><stop offset="1" stop-color="#16244a"/></linearGradient>
-    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f93ff"/><stop offset="1" stop-color="#3fd6a6"/></linearGradient>
-    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity=".35"/></filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1222"/><stop offset=".55" stop-color="#101d3b"/><stop offset="1" stop-color="#1a2b5c"/></linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8ea0ff"/><stop offset="1" stop-color="#3fd6a6"/></linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#5b74ff" stop-opacity=".35"/><stop offset="1" stop-color="#5b74ff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f93ff" stop-opacity="0"/><stop offset=".5" stop-color="#7f93ff" stop-opacity=".30"/><stop offset="1" stop-color="#7f93ff" stop-opacity="0"/></linearGradient>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="135%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity=".4"/></filter>
+    <clipPath id="cc"><rect width="420" height="318" rx="18"/></clipPath>
+    <style>
+      .f{font-family:Inter,'Segoe UI',Arial,sans-serif}
+      @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+      @keyframes drift{0%{transform:translateX(0)}100%{transform:translateX(560px)}}
+      @keyframes scan{0%{transform:translateX(-140px)}100%{transform:translateX(560px)}}
+      @keyframes ring{0%{r:30;opacity:.8}100%{r:74;opacity:0}}
+      .dot{animation:drift 7s linear infinite}
+      .p1{animation:pulse 3s ease-in-out infinite}.p2{animation:pulse 3s ease-in-out .5s infinite}.p3{animation:pulse 3s ease-in-out 1s infinite}
+    </style>
   </defs>
-  <rect width="1200" height="420" rx="18" fill="url(#bg)"/>
-  <g opacity=".08" stroke="#9fb0ff"><path d="M0 70H1200M0 140H1200M0 210H1200M0 280H1200M0 350H1200"/><path d="M100 0V420M300 0V420M500 0V420M700 0V420M900 0V420M1100 0V420"/></g>
-  <g transform="translate(60 52)">
-    <circle cx="22" cy="22" r="19" fill="none" stroke="#7f93ff" stroke-width="3"/><circle cx="22" cy="22" r="8" fill="none" stroke="#7f93ff" stroke-width="3"/><path d="M22 0v9M22 35v9M0 22h9M35 22h9" stroke="#7f93ff" stroke-width="3"/>
-    <text x="62" y="31" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" fill="#fff" letter-spacing="-.5">Fraud Hunter <tspan fill="url(#ac)">India</tspan></text>
+  <rect width="1200" height="520" rx="22" fill="url(#bg)"/>
+  <ellipse cx="930" cy="190" rx="360" ry="250" fill="url(#glow)"/>
+  <g opacity=".07" stroke="#9fb0ff"><path d="M0 65H1200M0 130H1200M0 195H1200M0 260H1200M0 325H1200M0 390H1200M0 455H1200"/><path d="M80 0V520M240 0V520M400 0V520M560 0V520M720 0V520M880 0V520M1040 0V520"/></g>
+  <!-- payments drifting through -->
+  <g class="dot" opacity=".9"><circle cx="40" cy="298" r="4" fill="#3fd6a6"/></g>
+  <g class="dot" style="animation-delay:-2.3s" opacity=".8"><circle cx="40" cy="312" r="3" fill="#e0a21a"/></g>
+  <g class="dot" style="animation-delay:-4.6s" opacity=".8"><circle cx="40" cy="286" r="3" fill="#3fd6a6"/></g>
+
+  <g transform="translate(60 52)" class="f">
+    <circle cx="24" cy="24" r="21" fill="none" stroke="#8ea0ff" stroke-width="3.2"/><circle cx="24" cy="24" r="9" fill="none" stroke="#8ea0ff" stroke-width="3.2"/><path d="M24 0v10M24 38v10M0 24h10M38 24h10" stroke="#8ea0ff" stroke-width="3.2"/>
+    <circle cx="24" cy="24" r="30" fill="none" stroke="#8ea0ff" stroke-width="1.5" style="animation:ring 3.2s ease-out infinite"/>
+    <text x="68" y="35" font-size="36" font-weight="800" fill="#fff" letter-spacing="-.5">Fraud Hunter <tspan fill="url(#ac)">India</tspan></text>
   </g>
-  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" fill="#cfd8f3">
-    <text x="60" y="140">Every UPI, IMPS, card and ATM payment</text>
-    <text x="60" y="172">gets one of three answers in about a millisecond,</text>
-    <text x="60" y="204">with the reasons attached.</text>
+  <g class="f" fill="#d6defa" font-size="25" font-weight="600">
+    <text x="60" y="148">Every UPI, IMPS, card and ATM payment</text>
+    <text x="60" y="182">gets <tspan fill="#3fd6a6">approve</tspan>, <tspan fill="#f0b83a">step-up</tspan> or <tspan fill="#ff6b82">decline</tspan></text>
+    <text x="60" y="216">in about a millisecond, with the reasons.</text>
   </g>
-  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="700" font-size="20" filter="url(#sh)">
-    <rect x="60" y="230" width="170" height="52" rx="26" fill="#0f8a66"/><text x="145" y="263" text-anchor="middle" fill="#fff">APPROVE</text>
-    <rect x="248" y="230" width="170" height="52" rx="26" fill="#e0a21a"/><text x="333" y="263" text-anchor="middle" fill="#2a1d00">STEP-UP</text>
-    <rect x="436" y="230" width="170" height="52" rx="26" fill="#cc2f46"/><text x="521" y="263" text-anchor="middle" fill="#fff">DECLINE</text>
+  <g class="f" font-weight="800" font-size="19" filter="url(#sh)">
+    <g class="p1"><rect x="60" y="242" width="160" height="50" rx="25" fill="#0f8a66"/><text x="140" y="274" text-anchor="middle" fill="#fff">APPROVE</text></g>
+    <g class="p2"><rect x="234" y="242" width="160" height="50" rx="25" fill="#e0a21a"/><text x="314" y="274" text-anchor="middle" fill="#2a1d00">STEP-UP</text></g>
+    <g class="p3"><rect x="408" y="242" width="160" height="50" rx="25" fill="#cc2f46"/><text x="488" y="274" text-anchor="middle" fill="#fff">DECLINE</text></g>
   </g>
-  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" fill="#8fa0ba">
-    <text x="60" y="318">Cheapest action, not just a fraud score:</text>
-    <text x="60" y="340">what fraud costs versus what blocking a good customer costs.</text>
-    <text x="60" y="368">Synthetic data, built around Indian scams: vishing, mule</text>
-    <text x="60" y="390">accounts, SIM swap, screen-share, QR and refund tricks.</text>
+  <g class="f" font-size="16" fill="#9fb0cf">
+    <text x="60" y="334">Picks the cheapest safe action: what fraud costs</text>
+    <text x="60" y="357">against what blocking a good customer costs.</text>
+    <text x="60" y="386">Built around Indian scams: vishing, mules, SIM swap,</text>
+    <text x="60" y="409">screen-share, QR and refund tricks.</text>
   </g>
-  <g transform="translate(730 56)" font-family="Inter,Segoe UI,Arial,sans-serif" filter="url(#sh)">
-    <rect width="410" height="300" rx="16" fill="#fff"/>
-    <text x="24" y="42" font-size="30" font-weight="800" fill="#1b2638">₹18,500</text><text x="24" y="64" font-size="14" fill="#5b6b82">UPI · p2p · first payment to this payee</text>
-    <rect x="272" y="18" width="116" height="34" rx="17" fill="#cc2f46"/><text x="330" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">Decline 98%</text>
-    <g font-size="14" fill="#1b2638">
-      <text x="24" y="102">Screen-share app active</text><rect x="236" y="91" width="96" height="12" rx="6" fill="#cc2f46"/><text x="386" y="102" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+3.97</text>
-      <text x="24" y="134">First payment to payee</text><rect x="236" y="123" width="74" height="12" rx="6" fill="#cc2f46"/><text x="386" y="134" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+3.05</text>
-      <text x="24" y="166">Payee is a person, not a shop</text><rect x="236" y="155" width="61" height="12" rx="6" fill="#cc2f46"/><text x="386" y="166" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="700">+2.51</text>
-      <text x="24" y="198">Amount near usual spend</text><rect x="236" y="187" width="22" height="12" rx="6" fill="#0f8a66"/><text x="386" y="198" font-size="13" fill="#0f8a66" text-anchor="end" font-weight="700">−0.85</text>
+
+  <!-- the decision card -->
+  <g transform="translate(724 52)" class="f" filter="url(#sh)">
+    <rect width="420" height="318" rx="18" fill="#fff"/>
+    <g clip-path="url(#cc)"><rect x="0" y="0" width="140" height="318" fill="url(#sweep)" style="animation:scan 5s ease-in-out infinite"/></g>
+    <text x="26" y="46" font-size="32" font-weight="800" fill="#1b2638">₹18,500</text><text x="26" y="70" font-size="14" fill="#5b6b82">UPI · to a person · first payment to this payee</text>
+    <rect x="266" y="20" width="128" height="36" rx="18" fill="#cc2f46"/><text x="330" y="44" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">Decline 98%</text>
+    <g font-size="14.5" fill="#1b2638">
+      <text x="26" y="112">Screen-share app active</text><rect x="236" y="100" width="104" height="13" rx="6.5" fill="#cc2f46"/><text x="394" y="112" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="800">+3.97</text>
+      <text x="26" y="146">First payment to payee</text><rect x="236" y="134" width="80" height="13" rx="6.5" fill="#cc2f46"/><text x="394" y="146" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="800">+3.05</text>
+      <text x="26" y="180">Payee is a person, not a shop</text><rect x="236" y="168" width="66" height="13" rx="6.5" fill="#cc2f46"/><text x="394" y="180" font-size="13" fill="#cc2f46" text-anchor="end" font-weight="800">+2.51</text>
+      <text x="26" y="214">Amount near usual spend</text><rect x="236" y="202" width="24" height="13" rx="6.5" fill="#0f8a66"/><text x="394" y="214" font-size="13" fill="#0f8a66" text-anchor="end" font-weight="800">−0.85</text>
     </g>
-    <rect x="24" y="222" width="362" height="56" rx="10" fill="#fdecef"/>
-    <text x="38" y="246" font-size="13.5" fill="#8a1f33" font-weight="700">What the customer sees</text>
-    <text x="38" y="266" font-size="13" fill="#8a1f33">Never share OTP or PIN. Call 1930.</text>
+    <rect x="26" y="238" width="368" height="58" rx="11" fill="#fdecef"/>
+    <text x="42" y="263" font-size="14" fill="#8a1f33" font-weight="800">What the customer sees</text>
+    <text x="42" y="283" font-size="13.5" fill="#8a1f33">Never share your OTP or PIN. Call 1930.</text>
+  </g>
+
+  <!-- proof strip -->
+  <g class="f" transform="translate(60 440)">
+    <rect width="1080" height="56" rx="14" fill="#ffffff" fill-opacity=".06" stroke="#8ea0ff" stroke-opacity=".25"/>
+    <g font-size="13.5" fill="#9fb0cf"><text x="24" y="24">Real card fraud</text><text x="300" y="24">Real smishing texts</text><text x="590" y="24">False alarms, real texts</text><text x="860" y="24">Tests</text></g>
+    <g font-size="21" font-weight="800" fill="#fff"><text x="24" y="46">AUC 0.98</text><text x="300" y="46">64% flagged</text><text x="590" y="46">0.04% of 27,000</text><text x="860" y="46">154 passing</text></g>
+    <g stroke="#8ea0ff" stroke-opacity=".25"><path d="M280 10V46M570 10V46M840 10V46"/></g>
   </g>
 </svg>
