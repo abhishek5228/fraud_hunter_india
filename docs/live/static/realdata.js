@@ -90,8 +90,7 @@ function renderShieldBench() {
     el("div", { class: "note", style: "margin-top:8px" }, "Smishing vs ordinary texts: recall " + p1(r.recall) + ", false-alarm rate " + (100 * r.false_alarm).toFixed(2) + "%, precision " + p1(r.precision) + " on a mix of " + fmtN(r.n_smish) + " smishing and " + fmtN(r.n_ordinary) + " ordinary. Precision depends on how common scams are (see BENCHMARKS.md)."),
     el("div", { class: "note" }, "Before the real data showed what scams look like, the same rules flagged 7.8% of real smishing. Most smishing here is US and English; the Indian-specific rules are not validated on real Indian scam texts.")));
 }
-function renderReplay() {
-  const host = $("#rd-replay");
+function renderReplay(host = $("#rd-replay"), auto = false) {
   if (!RD.L.can_replay) { host.replaceChildren(el("div", { class: "empty" }, "Run section 1 first: it fits the model that scores the replay.")); return; }
   const feed = el("div", { class: "feed", style: "max-height:360px;overflow:auto" }), kp = el("div", { class: "kpis", style: "grid-template-columns:repeat(4,1fr);margin:8px 0" }), msg = el("div", { class: "note", role: "status" });
   let off = 0, timer = null, jump = false;
@@ -113,6 +112,7 @@ function renderReplay() {
   const go = el("button", { class: "btn pri", onclick: () => { if (timer) return stop(); go.textContent = "Pause"; timer = setInterval(step, 700); step(); } }, "Start replay");
   const rs = el("button", { class: "btn", onclick: () => { stop(); off = 0; feed.replaceChildren(); kp.replaceChildren(); msg.textContent = ""; } }, "Restart");
   function stop() { clearInterval(timer); timer = null; go.textContent = off ? "Resume" : "Start replay"; }
+  if (auto) setTimeout(() => go.click(), 50);
   host.replaceChildren(el("div", { class: "note" }, "The latest 20% of the real two days, in time order, scored by the model you just fitted. Each payment shows what the model said and what actually happened."), el("div", { class: "act", style: "padding:8px 0;gap:8px;align-items:center" }, go, rs, skip, per), kp, msg, feed);
 }
 function renderDemoReal() {
@@ -123,4 +123,24 @@ function renderDemoReal() {
     table(["Model", "AUC", "Average precision", "95% interval", "Caught at 1% false alarms"], [["Additive model (this project)", "0.980", "0.760", "0.667 to 0.840", "86.7%"], ["Logistic regression (this project)", "0.971", "0.704", "0.600 to 0.792", "86.7%"], ["Logistic regression (scikit-learn)", "0.973", "0.706", "0.609 to 0.792", "86.7%"], ["Random forest (scikit-learn)", "0.941", "0.792", "0.705 to 0.870", "86.7%"], ["Gradient boosting (scikit-learn, untuned)", "0.769", "0.475", "0.360 to 0.592", "70.7%"]]));
   $("#rd-replay").replaceChildren(el("div", { class: "empty" }, note));
   $("#rd-shield").replaceChildren(el("div", { class: "note" }, "Recorded on real messages (test half): 46.4% of 528 real smishing texts flagged (7.8% before real data guided the rules), 0.05% of about 26,600 real ordinary texts falsely flagged, 0.06% of 3,487 real texts sent from India. Details in docs/BENCHMARKS.md."));
+}
+
+/* Live ops on real data: the same replay, shown on the first tab. There is no public stream of real Indian payments, so this is the
+   closest honest thing: real card transactions in time order, scored one by one by the model, with what actually happened. */
+async function liveReal(host) {
+  try { RD.L = await rdApi("/api/realdata"); } catch (e) { host.replaceChildren(el("div", { class: "empty" }, e.message)); return; }
+  if (RD.L.can_replay) { renderReplay(host, true); return; }
+  const box = el("div");
+  runBox(box, "Start the real feed (downloads about 144 MB if needed, fits the model, then replays)", "/api/realdata/run/ulb", true, () => { RD.L.can_replay = true; renderReplay(host, true); return el("span"); });
+  host.replaceChildren(el("div", { class: "note", style: "margin-bottom:8px" }, "Real card transactions from two days in September 2013, replayed in time order and scored by the model one at a time. The first start fits the model on the earliest 65% of the file."), keyRow(), box);
+}
+function liveSource(real) {
+  const sim = $$("#tab-live > .live, #tab-live > #kpis");
+  sim.forEach(e => { e.hidden = real; });
+  $("#real-live").hidden = !real;
+  document.body.classList.toggle("realmode", real);                    // the header's simulator controls do nothing to a real file
+  $$("#srcbar button").forEach(b => b.setAttribute("aria-pressed", (b.dataset.src === "real") === real));
+  const pv = $("#tab-live > .prov");
+  if (pv) { pv.className = "prov " + (real ? "real" : "sim"); pv.firstChild.textContent = real ? "REAL PUBLIC DATA" : "SIMULATED"; pv.lastChild.textContent = real ? "Real card transactions (ULB / Worldline, 2013) replayed in time order and scored by the model. They have no customer, device or payee ids, so the behavioural engine, India map and attack types need the simulator." : PROV.live[2]; }
+  if (real) liveReal($("#real-live"));
 }

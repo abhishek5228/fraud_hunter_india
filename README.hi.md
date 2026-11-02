@@ -22,7 +22,7 @@
 pip install -r requirements.txt
 python -m fh.train                          # लगभग 35 सेकंड
 python -m uvicorn fh.api:app --port 8000    # फिर http://localhost:8000 खोलें
-python -m pytest -q tests                   # 146 टेस्ट
+python -m pytest -q tests                   # 147 टेस्ट
 ```
 
 बिना सर्वर के डेमो: [`docs/index.html`](docs/index.html) खोलें।

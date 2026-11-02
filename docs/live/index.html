@@ -48,6 +48,12 @@
 </header>
 <main>
 <section class="tab on" id="tab-live">
+  <div class="act" id="srcbar" role="group" aria-label="Where the live payments come from" style="padding:0 0 10px;gap:8px;align-items:center">
+    <span class="note">Payments come from:</span>
+    <button class="chip" data-src="sim" aria-pressed="true">Simulator (customers, India map, attacks)</button>
+    <button class="chip" data-src="real" aria-pressed="false">Real card data (replay)</button>
+  </div>
+  <div id="real-live" hidden></div>
   <div class="kpis" id="kpis"></div>
   <div class="live">
     <div class="col">

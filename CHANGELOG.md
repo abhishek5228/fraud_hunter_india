@@ -12,6 +12,7 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 - Mule-graph hub ids were 4 characters, so two payees could share one and a ruling could hit the wrong payee. Ids are now 8 characters, with a regression test.
 
 ### Added
+- Live ops can show real data: a switch above the feed replays the real card transactions in time order, scored one by one, with the true outcome beside each. The simulator stays the default.
 - A 30-second summary at the top of the README.
 - **Real data tab** in the console: download real public datasets from their sources (or upload your own), run the card-fraud and Scam Shield benchmarks, replay real card transactions with their true labels, and try real text messages in Scam Shield. A provenance strip on every tab says what is simulated, real or yours.
 - **Real-data benchmarks** (`docs/BENCHMARKS.md`): the additive model on 284,807 real card transactions (`tools/benchmark_ulb.py`) and Scam Shield on about 55,000 real text messages (`tools/eval_shield.py`).

@@ -179,6 +179,8 @@ function initLive() {
     await api("/api/attack", { kind: b.dataset.k }); S.filter = "all";
     if (S.snap && !S.snap.run) await api("/api/sim", { run: true });
   });
+  if (window.FH_DEMO) $("#srcbar").hidden = true;        // the static demo has no server to fetch real data onto
+  else $("#srcbar").addEventListener("click", e => { const b = e.target.closest("button"); if (b) liveSource(b.dataset.src === "real"); });
   connect(); drawMap();
 }
 

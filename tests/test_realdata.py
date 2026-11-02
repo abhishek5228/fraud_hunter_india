@@ -183,3 +183,9 @@ def test_benchmarks_fetch_what_a_restarted_server_has_forgotten(client, monkeypa
     got.clear()
     rd.ensure(["ulb"], lambda *a: None)
     assert got == []                                                   # a file already there is never downloaded again
+
+
+def test_live_tab_has_a_real_data_source_switch():
+    html = open("web/index.html").read()
+    js = open("web/realdata.js").read()
+    assert 'data-src="real"' in html and 'id="real-live"' in html and "function liveSource" in js and "/api/realdata/run/ulb" in js

@@ -206,3 +206,5 @@ textarea:focus-visible{outline:2px solid var(--acc)}
 .ds .st.ok{background:#dff5ec;color:#0b6b4e}.ds .st.no{background:#fdecef;color:#9b1c31}.ds .st.warn{background:#fff1d6;color:#8a5a00}
 .pbar{height:8px;border-radius:5px;background:#e8eef7;overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;background:#3b57f5;transition:width .3s}
 .tag.fr{background:#fdecef;color:#9b1c31}.tag.ok2{background:#eef3f9;color:#5b6b82}
+[hidden]{display:none!important}
+body.realmode .ctl{opacity:.35;pointer-events:none}
