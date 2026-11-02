@@ -196,7 +196,33 @@ async def _decide(x, src, neutral=False):
     S["aud"].log("score", res["id"], res["uid"], res["amt"], res["chan"], res["dname"], res["p"], [h["code"] for h in res["hits"]], S["ver"],
                  dict(commit=commit, src=src))
     S["nt"].alert(res, src)
+    if os.environ.get("FH_SHADOW") == "1":
+        return _shadow(res)
     return res
+
+
+def _shadow(res):
+    """Shadow mode: the engine decides, the audit log keeps what it WOULD have done, and the caller is told 'approve'.
+    Run it next to a real system first, then compare the would-have-done column with what really happened."""
+    sh = S.setdefault("shadow", dict(n=0, by={0: 0, 1: 0, 2: 0}, amt=0.0, amt_by={1: 0.0, 2: 0.0}, since=int(time.time())))
+    sh["n"] += 1
+    sh["by"][res["dec"]] += 1
+    if res["dec"]:
+        sh["amt"] += res["amt"]
+        sh["amt_by"][res["dec"]] += res["amt"]
+    out = dict(res, shadow=True, enforced=False, would_have=dict(dec=res["dec"], name=res["dname"], codes=[h["code"] for h in res["hits"]]))
+    out["dec"], out["dname"] = 0, policy.NAMES[0]
+    return out
+
+
+@app.get("/api/shadow")
+async def shadow_report():
+    on = os.environ.get("FH_SHADOW") == "1"
+    sh = S.get("shadow") or dict(n=0, by={0: 0, 1: 0, 2: 0}, amt=0.0, amt_by={1: 0.0, 2: 0.0}, since=None)
+    n = max(1, sh["n"])
+    return dict(on=on, scored=sh["n"], since=sh["since"], would_approve=sh["by"][0], would_step_up=sh["by"][1], would_decline=sh["by"][2],
+                share_intervened=round((sh["by"][1] + sh["by"][2]) / n, 4), amount_that_would_have_been_stopped=round(sh["amt"], 2),
+                feedback=S["fb"], note="Callers were told 'approve' for every payment; the figures are what the engine would have done.")
 
 
 @app.get("/api/case/{cid}")
@@ -526,7 +552,7 @@ async def integrations():
     return dict(
         razorpay=dict(on=bool(os.environ.get("RAZORPAY_WEBHOOK_SECRET")), url="/api/webhook/razorpay", **S["hook"]),
         ipinfo=dict(on=ip.on, cached=len(ip.cache), cache_hits=ip.hits, errors=ip.errs),
-        alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")),
+        alerts=S["nt"].status(), auth=bool(os.environ.get("FH_API_KEY")), shadow=os.environ.get("FH_SHADOW") == "1",
         llm=dict(on=bool(copilot.provider()), provider=(copilot.provider() or ("", "", ""))[0], model=(copilot.provider() or ("", "", ""))[2]))
 
 

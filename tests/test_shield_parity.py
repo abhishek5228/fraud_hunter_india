@@ -22,3 +22,13 @@ def test_browser_and_server_match_the_same_rules_on_every_fixture_text():
     bad = [(t[:60], a, b) for t, a, b in zip(texts, js, py) if a != b]
     assert not bad, bad[:3]
     assert len(texts) >= 50
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_browser_and_server_give_the_same_model_probability():
+    texts = json.load(open(os.path.join(HERE, "fixtures", "shield_texts.json"), encoding="utf-8"))
+    out = subprocess.run(["node", os.path.join(HERE, "shield_parity.mjs"), "p"], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    js = json.loads(out.stdout)
+    assert any(shield.model_p(t) >= shield._R["model"]["t"] for t in texts), "the fixtures must include a text the model flags"
+    assert max(abs(a - shield.model_p(t)) for a, t in zip(js, texts)) < 1e-9

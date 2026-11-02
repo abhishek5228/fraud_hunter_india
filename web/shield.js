@@ -2,6 +2,17 @@
 let SHR = null;
 async function shieldRules() { return SHR || (SHR = await api("/api/shield/rules")); }
 
+/* The learned part: the same words, weights and threshold as the server (see fh/shield.py tokens() and model_p()). */
+function shTokens(text) {
+  const t = text.toLowerCase().replace(/https?:\/\/\S+|www\.\S+/g, " urltok ").replace(/[0-9]+/g, "0"), w = t.match(/[a-z0-9]+/g) || [];
+  return w.concat(w.slice(1).map((x, i) => w[i] + "_" + x));
+}
+function shModel(R, text) {
+  const M = R.model; if (!M) return null;
+  let z = M.bias; for (const k of new Set(shTokens(text))) z += M.w[k] || 0;
+  const p = 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, z))));
+  return p >= M.t ? { id: "text_model", w: M.hit_w, en: M.en, hi: M.hi, seen: Math.round(100 * p) + "%" } : null;
+}
 function shieldLocal(R, text) {
   let t = text;
   for (const m of text.matchAll(/upi:\/\/\S+/gi)) {
@@ -9,6 +20,7 @@ function shieldLocal(R, text) {
   }
   const hit = [];
   for (const r of R.rules) { const m = new RegExp(r.re, "i").exec(t); if (m) hit.push({ id: r.id, w: r.w, en: r.en, hi: r.hi, seen: m[0].slice(0, 70) }); }
+  const mh = shModel(R, text); if (mh) hit.push(mh);
   const mail = new Set(["gmail", "yahoo", "outlook", "hotmail", "rediffmail", "icloud", "proton", "protonmail"]);
   const handles = (t.match(/\b[a-z0-9._\-]{2,}@[a-z]{2,}\b/gi) || []).filter(h => !mail.has(h.split("@")[1].toLowerCase()));
   return finishShield(R, hit, handles, null);

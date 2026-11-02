@@ -106,6 +106,10 @@ A free Render server sleeps after about 15 idle minutes, takes 30 to 50 seconds 
 2. **Fetch the real text collections at boot.** Set `FH_PREWARM=1` in the Render environment (already in `render.yaml` for new blueprints). Add `FH_PREWARM_ULB=1` to fetch the 144 MB card file too. Without it, the Run buttons on the Real data tab download what is missing themselves.
 3. **Rehearse 10 minutes before.** `FH_API_KEY=<your key> python tools/preflight.py` wakes the server and walks the path a judge would: Scam Shield, the real-data downloads, both benchmarks and the card replay. Every line should say PASS. A crash from the 512 MB limit shows up here, not on stage.
 
+## Shadow mode before real traffic
+
+Set `FH_SHADOW=1`, send your real payments to `POST /api/score` (or point the Razorpay webhook at the server), and the engine will score and log everything but answer "approve" to every caller, so nothing is ever blocked. `GET /api/shadow` shows how many payments it would have stepped up or declined and the amount involved. Compare that with the outcomes your own system recorded (the `would_have` field is on every response and in the audit log) for a few weeks before letting it act.
+
 ## Before real traffic
 
 - **This is trained on synthetic data.** Retrain on your own history (`fh/train.py` is the template), and expect to rebuild the cost settings with your finance team.

@@ -7,6 +7,7 @@ agree. It checks wording and structure. It cannot tell who owns a handle, so it 
 Optionally combines the text verdict with what this engine knows about the payee (fan-in of first-time senders, fraud complaints).
 """
 import json
+import math
 import os
 import re
 import urllib.parse
@@ -15,6 +16,22 @@ _R = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "sh
 RULES = [dict(r, rx=re.compile(r["re"], re.I)) for r in _R["rules"]]
 VPA = re.compile(r"\b[a-z0-9._\-]{2,}@[a-z]{2,}\b", re.I)
 EMAIL_DOMAINS = {"gmail", "yahoo", "outlook", "hotmail", "rediffmail", "icloud", "proton", "protonmail"}
+
+
+def tokens(text):
+    """Words and word pairs the learned part reads. ASCII only, digits folded, links folded, so the browser reproduces it exactly."""
+    t = re.sub(r"[0-9]+", "0", re.sub(r"https?://\S+|www\.\S+", " urltok ", (text or "").lower()))
+    w = re.findall(r"[a-z0-9]+", t)
+    return w + [a + "_" + b for a, b in zip(w, w[1:])]
+
+
+def model_p(text, M=None):
+    """Chance (0 to 1) that the wording looks like real smishing, from a small linear model trained on public data. None if no model is shipped."""
+    M = M if M is not None else _R.get("model")
+    if not M:
+        return None
+    z = M["bias"] + sum(M["w"].get(k, 0.0) for k in set(tokens(text)))
+    return 1 / (1 + math.exp(-max(-30.0, min(30.0, z))))
 
 
 def expand(text):
@@ -76,6 +93,11 @@ def check(text, net=None, owner=None):
         m = r["rx"].search(t)
         if m:
             hit.append(dict(id=r["id"], w=r["w"], en=r["en"], hi=r["hi"], seen=m.group(0)[:70]))
+    M = _R.get("model")
+    if M:
+        p = model_p(text, M)
+        if p >= M["t"]:
+            hit.append(dict(id="text_model", w=M["hit_w"], en=M["en"], hi=M["hi"], seen="%.0f%%" % (100 * p)))
     if net:
         n = _R["network"]
         if net.get("complaints", 0) >= n["complaints"]["min"]:

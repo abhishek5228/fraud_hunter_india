@@ -61,6 +61,26 @@ The real messages are split 50/50 by a fixed seed into **DEV** and **TEST**. I c
 
 The "Now" column was re-measured on 2026-11-02 after the Indian collection (below) was added. Re-running the 26 rules as they stood before that change gives 46.4% smishing, 5.6% UCI spam and 0.04% NUS false alarms, so two cells in the earlier version of this table (UCI spam 4.7%, NUS 0.05%) were slightly off. They are corrected here.
 
+### A small learned part, added on top of the rules (2026-11-02)
+
+The rules caught only 45.3% of real smishing, so I trained a small linear model on the real messages (`tools/train_shield_model.py`): about 700 words and word pairs, folded for links and digits, stored in `fh/shield_rules.json` so the browser runs the identical model (a test checks that both give the same probability). When it thinks a text reads like smishing it adds one more warning of 35 points to the rules' own, so it can turn a quiet message into a "be careful" and push a risky one higher.
+
+How it was kept honest: it is fitted on the **DEV half only**, its threshold is chosen from out-of-fold predictions on DEV for a target of about 0.03% false alarms on ordinary texts, and nothing that is in any TEST group is allowed into its training. The numbers below are the TEST half.
+
+| On the TEST half | Rules only | Rules + learned part |
+|---|---:|---:|
+| Real smishing flagged, n=528 | 45.3% | **63.6%** |
+| Real smishing rated danger | 6.6% | 20.8% |
+| Ordinary UCI messages falsely flagged, n=2,259 | 0.09% | 0.13% (3 messages) |
+| Ordinary NUS messages falsely flagged, n=24,311 | 0.03% | 0.04% (9 messages) |
+| &nbsp;&nbsp;of those, sent from India, n=3,487 | 0.06% | 0.09% (3 messages) |
+| Ordinary Indian telecom messages, n=664 | 0.00% | 0.00% |
+| Precision on this mix (528 smishing vs 27,234 ordinary) | 94.6% | 96.6% |
+
+**The gain is real but smaller than the headline.** The random split puts near-copies of the same campaign on both sides. Looking only at the 404 TEST messages that are unlike anything in DEV (word overlap with the closest DEV smishing text below 0.6), the rules alone flag **35.1%** and rules plus model flag **55.7%**. The 124 near-copies are flagged 89.5% of the time. So on wording it has never seen, the model adds about 20 points, not 18, but the level to expect on new campaigns is the lower figure.
+
+**Where it can fail.** The training smishing is Smishtank, mostly US and English (parcels, banks, streaming). It has not seen Indian bank-scam wording, so it may miss it, and it flags more Indian promotions than the rules do (51% of the Indian spam, up from 42%; those are unwanted offers rather than fraud). It is a linear model on words, so it is easy to evade by rewording, and it is a nudge to pause and check, not a block. To use it for blocking you would need far lower false-alarm rates than a few in ten thousand.
+
 ### Real Indian messages (added 2026-11-02)
 
 The **Indian Telecom SMS Spam Collection** (junioralive, MIT licence, 2,063 distinct real messages: 1,327 ordinary and 736 spam) is the only real Indian text collection I could fetch. Two honest limits come first. Its "spam" is almost all **promotion** (Airtel, Vi, Jio, banks selling loans, rummy and shop offers), with only a handful of real scams (for example "part-time job, earn per day" bait). So it cannot measure scam recall. What it can measure is **false alarms on real Indian messages**: bank, telecom and chat.
@@ -82,7 +102,7 @@ What the nine false alarms were: eight were friends talking about a **power cut*
 
 **What these numbers do not mean.**
 - The smishing data is mostly **US and English** (USPS, Netflix, banks). It is real, but not Indian. **I could not reach a labelled corpus of real Indian bank-scam messages.** The one real Indian collection I found (above) is promotions and chat, with almost no scams. The Indian-specific rules (electricity bills, KYC, digital arrest, UPI handles) are therefore **not validated on real Indian scam texts**. They are validated only against real Indian ordinary texts (0.06% false alarms on 3,487).
-- **More than half of real smishing is still missed**, for example link-only messages, "wrong number" openers and dating baits with no keyword.
+- **About 40% of real smishing is still missed (more on unseen wording)**, for example link-only messages, "wrong number" openers and dating baits with no keyword.
 - **Precision depends on how common scams are.** 94.6% is for a mix of about 2% smishing. If 1 text in 1,000 were smishing, the same rates would give roughly 48% precision, so a warning would be right about half the time. That is still a reasonable warning for a "pause and check" nudge, and a poor one for blocking.
 - Spam is a different thing from smishing. The rules are not trying to catch promotional spam, and they catch few.
 
