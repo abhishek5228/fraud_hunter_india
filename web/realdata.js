@@ -20,6 +20,7 @@ function provStrips() {
 }
 provStrips();
 
+try { window.FH_KEY = window.FH_KEY || sessionStorage.getItem("fhkey") || ""; } catch (e) {}      // typed by the owner, kept only for this tab session
 const RD = { jobs: {}, replay: null };
 const fmtN = n => n.toLocaleString("en-IN"), p1 = v => (100 * v).toFixed(1) + "%";
 const rdApi = async (u, opt) => {
@@ -32,8 +33,13 @@ async function realTab() {
   if (window.FH_DEMO) { renderDemoReal(); return; }
   let L; try { L = await rdApi("/api/realdata?verify=true"); } catch (e) { $("#rd-list").replaceChildren(el("div", { class: "empty" }, e.message)); return; }
   RD.L = L; $("#rd-note").textContent = "stored in " + L.data_dir;
-  $("#rd-list").replaceChildren(...L.datasets.map(dsCard));
+  $("#rd-list").replaceChildren(keyRow(), ...L.datasets.map(dsCard));
   renderUlb(); renderShieldBench(); renderReplay();
+}
+function keyRow() {
+  const inp = el("input", { type: "password", placeholder: "Server API key (only if you own this server)", autocomplete: "off", value: window.FH_KEY || "", style: "min-width:260px" });
+  const b = el("button", { class: "btn sm", onclick: () => { window.FH_KEY = inp.value.trim(); try { sessionStorage.setItem("fhkey", window.FH_KEY); } catch (e) {} realTab(); } }, "Use key");
+  return el("div", { class: "note", style: "display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px" }, "Downloads, uploads and benchmarks need the server's API key. It stays in this browser tab only.", inp, b);
 }
 function dsCard(d) {
   const msg = el("div", { class: "note", role: "status" });
