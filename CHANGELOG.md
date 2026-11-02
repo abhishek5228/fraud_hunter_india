@@ -3,7 +3,14 @@
 All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com).
 
 ## [Unreleased]
+### Security
+- Per-IP limits on the Real data download, upload, benchmark, replay and sample endpoints, so a server without `FH_API_KEY` cannot be used to start repeated large jobs; replay size is capped.
+
+### Fixed
+- Mule-graph hub ids were 4 characters, so two payees could share one and a ruling could hit the wrong payee. Ids are now 8 characters, with a regression test.
+
 ### Added
+- A 30-second summary at the top of the README.
 - **Real data tab** in the console: download real public datasets from their sources (or upload your own), run the card-fraud and Scam Shield benchmarks, replay real card transactions with their true labels, and try real text messages in Scam Shield. A provenance strip on every tab says what is simulated, real or yours.
 - **Real-data benchmarks** (`docs/BENCHMARKS.md`): the additive model on 284,807 real card transactions (`tools/benchmark_ulb.py`) and Scam Shield on about 55,000 real text messages (`tools/eval_shield.py`).
 - 11 generic smishing rules for Scam Shield (parcel fees, locked accounts, refunds, subscription failures, bait, crypto groups and more); 26 rules in total.

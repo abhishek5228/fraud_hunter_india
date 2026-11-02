@@ -572,8 +572,8 @@ async def loadtest(n: int = 3000):
 RATE = {}
 
 
-def _limit(req, per_min=40):
-    ip = (req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "?"))
+def _limit(req, per_min=40, kind=""):
+    ip = (req.headers.get("x-forwarded-for", "").split(",")[0].strip() or (req.client.host if req.client else "?")) + kind
     q, now = RATE.setdefault(ip, []), time.time()
     q[:] = [t for t in q if now - t < 60]
     if len(q) >= per_min:
@@ -777,8 +777,9 @@ def _known(i):
 
 
 @app.post("/api/realdata/{i}/fetch", dependencies=[Depends(guard)])
-async def realdata_fetch(i: str):
+async def realdata_fetch(i: str, req: Request):
     """Download the dataset from its fixed source address (never an address supplied by the caller)."""
+    _limit(req, 4, "|heavy")
     _known(i)
     try:
         jid = rd.start("fetch " + i, lambda prog: dict(dataset=i, bytes=rd.fetch(i, lambda n: prog(0.5, "%.1f MB" % (n / 1e6))), status=rd.status(i, True)))
@@ -789,6 +790,7 @@ async def realdata_fetch(i: str):
 
 @app.post("/api/realdata/{i}/upload", dependencies=[Depends(guard)])
 async def realdata_upload(i: str, req: Request):
+    _limit(req, 10, "|up")
     _known(i)
     if not _uploads_ok():
         raise HTTPException(403, "uploads are off on this server: set FH_API_KEY (recommended) or FH_ALLOW_UPLOADS=1")
@@ -803,7 +805,8 @@ async def realdata_upload(i: str, req: Request):
 
 
 @app.post("/api/realdata/run/{which}", dependencies=[Depends(guard)])
-async def realdata_run(which: str):
+async def realdata_run(which: str, req: Request):
+    _limit(req, 4, "|heavy")
     fn = dict(ulb=rd.bench_ulb, shield=rd.bench_shield).get(which)
     if not fn:
         raise HTTPException(404, "which must be ulb or shield")
@@ -824,15 +827,17 @@ async def realdata_job(jid: str):
 
 
 @app.get("/api/realdata/replay")
-async def realdata_replay(offset: int = 0, n: int = 25, to_fraud: bool = False):
+async def realdata_replay(req: Request, offset: int = 0, n: int = 25, to_fraud: bool = False):
+    _limit(req, 120, "|replay")
     try:
-        return rd.replay(offset, n, to_fraud)
+        return rd.replay(max(0, offset), max(1, min(n, 100)), to_fraud)
     except ValueError as e:
         raise HTTPException(409, str(e))
 
 
 @app.get("/api/realdata/sample")
-async def realdata_sample(kind: str = "smish"):
+async def realdata_sample(req: Request, kind: str = "smish"):
+    _limit(req, 60, "|sample")
     if kind not in ("smish", "spam", "ham", "india"):
         raise HTTPException(422, "kind must be smish, spam, ham or india")
     try:

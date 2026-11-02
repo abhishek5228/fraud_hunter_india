@@ -6,7 +6,7 @@ WEEK = 7 * 86400
 
 
 def short(s):
-    return hashlib.sha1(str(s).encode()).hexdigest()[:4]
+    return hashlib.sha1(str(s).encode()).hexdigest()[:8]
 
 
 def mask(s):

@@ -149,3 +149,20 @@ def test_only_one_job_runs_at_a_time(client):
         assert c.post("/api/realdata/run/shield").status_code == 409
     finally:
         rd._LOCK.release()
+
+
+def test_heavy_endpoints_are_rate_limited_per_ip(client):
+    c, _ = client
+    from fh import api
+    api.RATE.clear()
+    codes = [c.post("/api/realdata/evil/fetch").status_code for _ in range(7)]
+    assert codes[:4] == [404] * 4 and 429 in codes[4:]
+    assert c.get("/api/realdata/replay?n=100000").status_code in (200, 409)   # n is capped, never an error from a huge value
+
+
+@pytest.fixture(autouse=True)
+def _fresh_limits():
+    from fh import api
+    api.RATE.clear()
+    yield
+    api.RATE.clear()

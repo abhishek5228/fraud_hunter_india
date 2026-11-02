@@ -39,3 +39,9 @@ def test_ingest_reads_fraud_labels():
 def test_names_match_compares_meaningful_words():
     assert shield.names_match("Rakesh K", "rakesh kumar yadav")
     assert not shield.names_match("SBI Refund", "STATE BANK OF INDIA")
+
+
+def test_hub_ids_are_long_enough_to_not_collide_across_a_thousand_payees():
+    from fh import graph
+    ids = {graph.short("mu%04d@upi" % i) for i in range(5000)}
+    assert len(ids) == 5000 and all(len(i) == 8 for i in ids)
