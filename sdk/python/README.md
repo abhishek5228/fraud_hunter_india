@@ -1,6 +1,6 @@
 # fraudhunter (Python client)
 
-    pip install "git+https://github.com/abhishek5228/fraud_hunter_india#subdirectory=sdk/python"
+    pip install "git+https://github.com/antrikakashyap/fraud_hunter#subdirectory=sdk/python"
 
 ```python
 from fraudhunter import FraudHunter

@@ -4,7 +4,7 @@
 
 **A real-time risk engine for Indian digital payments. It chooses the cheapest safe action for every UPI, IMPS, card and ATM payment, and says why in words an analyst or a customer can act on.**
 
-[![tests](https://img.shields.io/github/actions/workflow/status/abhishek5228/fraud_hunter_india/ci.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/abhishek5228/fraud_hunter_india/actions)
+[![tests](https://img.shields.io/github/actions/workflow/status/antrikakashyap/fraud_hunter/ci.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/antrikakashyap/fraud_hunter/actions)
 [![145 tests](https://img.shields.io/badge/tests-145%20passing-2ec866?style=for-the-badge)](#tests)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b48cf2?style=for-the-badge)](LICENSE)
@@ -15,7 +15,7 @@
 ### Live
 
 [![Open the live console](https://img.shields.io/badge/Open%20the%20live%20console-fraud--hunter--api.onrender.com-3b57f5?style=for-the-badge&logo=render&logoColor=white)](https://fraud-hunter-api.onrender.com/)
-[![Try the demo, no server](https://img.shields.io/badge/Try%20the%20demo-GitHub%20Pages-0f8a66?style=for-the-badge&logo=github&logoColor=white)](https://abhishek5228.github.io/fraud_hunter_india/)
+[![Try the demo, no server](https://img.shields.io/badge/Try%20the%20demo-GitHub%20Pages-0f8a66?style=for-the-badge&logo=github&logoColor=white)](https://antrikakashyap.github.io/fraud_hunter/)
 
 <sub>The console on Render runs the real engine. It is on a free plan that sleeps when idle, so the first load can take 30 to 50 seconds. The Pages demo needs no server: it replays real recorded decisions. API docs: [`/docs`](https://fraud-hunter-api.onrender.com/docs).</sub>
 
@@ -30,7 +30,7 @@
 - **What it is:** a risk engine that looks at one Indian digital payment (UPI, IMPS, card or ATM) and answers **approve, step-up (ask for more proof) or decline in about a millisecond**, with the reasons in plain words.
 - **What is inside:** 44 streaming features, an additive model written from scratch, escalate-only guardrail rules, an expected-cost policy, a mule graph, a Scam Shield for suspicious messages, and an analyst copilot that drafts the report.
 - **What is real:** the payments in the simulator tabs are synthetic. The **Real data** tab runs on public datasets (ULB card fraud, real scam SMS) with the numbers and their limits shown. See [what is and is not real](#what-is-and-is-not-real).
-- **Try it:** [live console](https://fraud-hunter-api.onrender.com/) (free plan, first load can take 30 to 50 seconds) or the [no-server demo](https://abhishek5228.github.io/fraud_hunter_india/). Run it yourself with the steps in [DEPLOY.md](DEPLOY.md).
+- **Try it:** [live console](https://fraud-hunter-api.onrender.com/) (free plan, first load can take 30 to 50 seconds) or the [no-server demo](https://antrikakashyap.github.io/fraud_hunter/). Run it yourself with the steps in [DEPLOY.md](DEPLOY.md).
 
 ## The problem, in one story
 
@@ -99,8 +99,8 @@ And around that core, **54 working features** that make it usable in the real wo
 | | Link | What it is |
 |---|---|---|
 | **Full console** | https://fraud-hunter-api.onrender.com/ | The real engine, all eleven tabs, simulated traffic, the Scam Shield, the mule graph, the Live wire. The free plan sleeps when idle: wait up to a minute on the first load. |
-| **Demo, no server** | https://abhishek5228.github.io/fraud_hunter_india/ | One static page that replays real recorded decisions. Uploads, the webhook, alerts and the load test say they need a backend. |
-| **Frontend for the hosted API** | https://abhishek5228.github.io/fraud_hunter_india/live/ | The same console served from GitHub Pages, talking to the Render API. |
+| **Demo, no server** | https://antrikakashyap.github.io/fraud_hunter/ | One static page that replays real recorded decisions. Uploads, the webhook, alerts and the load test say they need a backend. |
+| **Frontend for the hosted API** | https://antrikakashyap.github.io/fraud_hunter/live/ | The same console served from GitHub Pages, talking to the Render API. |
 | **API reference** | https://fraud-hunter-api.onrender.com/docs | Interactive docs for every endpoint. |
 | **Health check** | https://fraud-hunter-api.onrender.com/api/health | `{"ok": true, ...}` when the server is awake. |
 
@@ -111,7 +111,7 @@ Things to click first: **Launch attack → Vishing with screen-share** (Live ops
 Python 3.12.
 
 ```bash
-git clone https://github.com/abhishek5228/fraud_hunter_india && cd fraud_hunter_india
+git clone https://github.com/antrikakashyap/fraud_hunter && cd fraud_hunter
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
