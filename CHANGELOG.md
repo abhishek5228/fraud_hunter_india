@@ -7,6 +7,7 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 - Per-IP limits on the Real data download, upload, benchmark, replay and sample endpoints, so a server without `FH_API_KEY` cannot be used to start repeated large jobs; replay size is capped.
 
 ### Fixed
+- The real card-fraud benchmark was killed by the 512 MB limit on the free Render plan (it held the whole file as Python floats, then three copies). The loader now fills numpy arrays in blocks and the table is freed before the models are fitted: peak memory fell from about 280 MB to about 220 MB in a local test.
 - Mule-graph hub ids were 4 characters, so two payees could share one and a ruling could hit the wrong payee. Ids are now 8 characters, with a regression test.
 
 ### Added

@@ -10,6 +10,7 @@ Datasets
   uci_sms    the UCI SMS Spam Collection, 5,574 real SMS (ham / spam)
   nus_sms    the NUS SMS Corpus, tens of thousands of real ordinary SMS (used for false alarms)
 """
+import gc
 import csv
 import json
 import os
@@ -63,18 +64,34 @@ def path(i):
 # ---------------------------------------------------------------- loading (light on memory)
 
 def load_ulb(p):
-    X, y, ts = [], [], []
+    """Fill numpy arrays in blocks of 10,000 rows. Holding every row as Python floats first, or concatenating blocks,
+    needs several times the memory, and a 512 MB server is killed by it."""
+    with open(p, "rb") as f:
+        n = sum(1 for _ in f) - 1
     with open(p, encoding="utf-8", newline="") as f:
         rd = csv.reader(f)
         h = next(rd)
         ix = {c: i for i, c in enumerate(h)}
         feat = [i for c, i in ix.items() if c not in ("Time", "Class")]
         names = [h[i] for i in feat]
+        ic, it = ix["Class"], ix["Time"]
+        X, y, ts = np.empty((n, len(feat))), np.empty(n), np.empty(n)
+        blk, k = [], 0
+
+        def flush():
+            nonlocal k
+            if blk:
+                a = np.array(blk, dtype=np.float64)
+                X[k:k + len(a)], y[k:k + len(a)], ts[k:k + len(a)] = a[:, feat], a[:, ic], a[:, it]
+                k += len(a)
+                blk.clear()
         for r in rd:
-            X.append([float(r[i]) for i in feat])
-            y.append(float(r[ix["Class"]]))
-            ts.append(float(r[ix["Time"]]))
-    return np.array(X, dtype=np.float64), np.array(y), np.array(ts), names
+            if len(r) > it:
+                blk.append(r)
+            if len(blk) >= 10000:
+                flush()
+        flush()
+    return X[:k], y[:k], ts[:k], names
 
 
 def load_texts(i, p):
@@ -236,23 +253,31 @@ def bench_ulb(progress=lambda *a: None):
     tr, va, te = _split_time(ts)
     if y[te].sum() < 5 or y[tr].sum() < 30:
         raise ValueError("this file has too little fraud to benchmark (%d fraud in the test part)" % y[te].sum())
-    progress(0.15, "fitting the additive model on %d payments" % tr.sum())
-    g = mdl.GAM(names).fit(X[tr], y[tr], X[va], y[va], log=lambda *a: None)
+    ai = names.index("Amount") if "Amount" in names else None
+    Xtr, Xva, Xte = X[tr], X[va], X[te]
+    amt = Xte[:, ai].copy() if ai is not None else np.zeros(len(Xte))
+    ytr, yva, yte, tte, ntr, nrows, nfr = y[tr], y[va], y[te], ts[te], int(tr.sum()), len(y), int(y.sum())
+    del X, ts, y                                                       # a 512 MB server is killed if the full table is kept next to the three slices
+    gc.collect()
+    progress(0.15, "fitting the additive model on %d payments" % ntr)
+    g = mdl.GAM(names).fit(Xtr, ytr, Xva, yva, log=lambda *a: None)
+    gc.collect()
     progress(0.75, "fitting logistic regression")
-    lr = mdl.LR().fit(X[tr], y[tr])
-    pg, pl = g.predict(X[te]), lr.predict(X[te])
+    lr = mdl.LR().fit(Xtr, ytr)
+    pg, pl = g.predict(Xte), lr.predict(Xte)
+    pv = g.predict(Xva)
+    del Xtr, Xte
+    gc.collect()
     progress(0.9, "bootstrap intervals")
     res = []
     for name, pr in (("Additive model (this project)", pg), ("Logistic regression (this project)", pl)):
-        lo, hi = _boot(y[te], pr)
-        res.append(dict(name=name, auc=mdl.roc_auc(y[te], pr), ap=mdl.avg_prec(y[te], pr), ap_lo=lo, ap_hi=hi,
-                        rec1=mdl.recall_at_fpr(y[te], pr, .01), rec01=mdl.recall_at_fpr(y[te], pr, .001)))
+        lo, hi = _boot(yte, pr)
+        res.append(dict(name=name, auc=mdl.roc_auc(yte, pr), ap=mdl.avg_prec(yte, pr), ap_lo=lo, ap_hi=hi,
+                        rec1=mdl.recall_at_fpr(yte, pr, .01), rec01=mdl.recall_at_fpr(yte, pr, .001)))
     # the operating point for replay: the score that flags 1% of the honest payments in the validation period
-    pv = g.predict(X[va])
-    thr = float(np.quantile(pv[y[va] == 0], 0.99))
-    ix = np.where(te)[0]
-    STATE["ulb"] = dict(idx=ix, p=pg, y=y[te], amt=X[te][:, names.index("Amount")] if "Amount" in names else np.zeros(len(ix)), ts=ts[te], thr=thr)
-    return dict(dataset="ulb", rows=len(y), fraud=int(y.sum()), train=int(tr.sum()), test=int(te.sum()), test_fraud=int(y[te].sum()), threshold=thr,
+    thr = float(np.quantile(pv[yva == 0], 0.99))
+    STATE["ulb"] = dict(idx=np.where(te)[0], p=pg, y=yte, amt=amt, ts=tte, thr=thr)
+    return dict(dataset="ulb", rows=nrows, fraud=nfr, train=ntr, test=int(te.sum()), test_fraud=int(yte.sum()), threshold=thr,
                 models=res, seconds=round(time.time() - t0, 1), split="time-ordered: train on the earliest 65%, test on the latest 20%")
 
 
