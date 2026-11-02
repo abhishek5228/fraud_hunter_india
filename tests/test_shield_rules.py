@@ -147,3 +147,13 @@ def test_ordinary_messages_that_used_to_raise_false_alarms_on_real_sms_stay_quie
                  "Eh ok thx.lol.I tot of getting 1", "I'm so lonely today",                       # '.lol' slang is not a web address
                  "Shirin's mother expired. Come home immediately."]:                              # 'expired' about a person
         assert shield.check(text)["level"] == "none", text
+
+
+def test_real_indian_chat_about_power_cuts_and_locked_accounts_is_not_flagged():
+    for t in ("There is power cut in our area since 12 am", "Power went down .. wifi disconnected. Will join once power restored.",
+              "It says account is blocked", "I have tried to reset using the tool but my account is locked", "Earlier it said account it blocked for pulse"):
+        assert not ids(t) and shield.check(t)["level"] == "none", t
+    assert "electricity" in ids("Your electricity bill is overdue, connection will be cut tonight, pay now")
+    assert "electricity" in ids("Dear consumer, power connection will be disconnected, update now")
+    assert "account_locked" in ids("Dear customer, your account has been locked, verify now")
+    assert "kyc" in ids("Your SBI account will be blocked, update PAN today")

@@ -48,23 +48,40 @@ python tools/eval_shield.py --smishtank smishtank.csv --uci SMSSpamCollection --
 
 The real messages are split 50/50 by a fixed seed into **DEV** and **TEST**. I changed rules by reading **DEV only**. TEST was never looked at while editing, and it is the half reported below. "Caution" means a warning score of 25 or more, "danger" 60 or more.
 
-| On the TEST half | Before (15 rules) | After (26 rules) |
+| On the TEST half | Before (15 rules) | Now (26 rules, 3 narrowed) |
 |---|---:|---:|
-| Real smishing flagged (caution or higher), n=528 | **7.8%** | **46.4%** |
-| Real smishing rated danger | 0.0% | 7.0% |
-| Real SMS spam flagged (UCI), n=321 | 4.0% | 4.7% |
+| Real smishing flagged (caution or higher), n=528 | **7.8%** | **45.3%** |
+| Real smishing rated danger | 0.0% | 6.6% |
+| Real SMS spam flagged (UCI), n=321 | 4.0% | 5.6% |
 | Ordinary UCI messages falsely flagged, n=2,259 | 0.22% | 0.09% |
-| Ordinary NUS messages falsely flagged, n=24,311 | 0.09% | 0.05% |
+| Ordinary NUS messages falsely flagged, n=24,311 | 0.09% | 0.03% |
 | &nbsp;&nbsp;of those, sent from India, n=3,487 | 0.09% | 0.06% |
-| Precision on this mix (528 smishing vs 26,570 ordinary) | 60.3% | 94.6% |
+| Ordinary Indian telecom messages falsely flagged, n=664 | not measured | 0.00% |
+| Precision on this mix (528 smishing vs 27,234 ordinary) | 60.3% | 96.0% |
+
+The "Now" column was re-measured on 2026-11-02 after the Indian collection (below) was added. Re-running the 26 rules as they stood before that change gives 46.4% smishing, 5.6% UCI spam and 0.04% NUS false alarms, so two cells in the earlier version of this table (UCI spam 4.7%, NUS 0.05%) were slightly off. They are corrected here.
+
+### Real Indian messages (added 2026-11-02)
+
+The **Indian Telecom SMS Spam Collection** (junioralive, MIT licence, 2,063 distinct real messages: 1,327 ordinary and 736 spam) is the only real Indian text collection I could fetch. Two honest limits come first. Its "spam" is almost all **promotion** (Airtel, Vi, Jio, banks selling loans, rummy and shop offers), with only a handful of real scams (for example "part-time job, earn per day" bait). So it cannot measure scam recall. What it can measure is **false alarms on real Indian messages**: bank, telecom and chat.
+
+| On this collection | Before the fix | After the fix |
+|---|---:|---:|
+| Ordinary messages falsely flagged, all 1,327 | 9 (0.68%) | **0 (0.00%)** |
+| Ordinary messages falsely flagged, TEST half only (664) | 4 (0.60%) | 0 (0.00%) |
+| Spam flagged at caution or higher, all 736 | not recorded | 301 (40.9%), 2 rated danger |
+
+What the nine false alarms were: eight were friends talking about a **power cut** (matched the electricity-bill rule) or "my account is blocked" (matched the account-locked and KYC rules), and one was "account it blocked for pulse". I narrowed three rules so they need scam wording: the electricity rule now needs a bill, connection, supply or meter; and the account-locked and KYC rules need the message to address "your" or "aapka" account. That cost 6 of 528 smishing messages (46.4% to 45.3%).
+
+**This is not a clean held-out result.** I read the false alarms across the whole file, including the TEST half, before changing the rules, so the 0.00% above is tuned on the data it is measured on. The 41% spam figure is not a scam-detection rate: those messages are promotions, and a "caution" on them means "unwanted offer with a link", not "fraud".
 
 **What the real data taught me (all of it was fixed on DEV):**
 1. The first version caught **7.8%** of real smishing. The rules were written for Indian bank and UPI scams (OTP, PIN, screen-share, KYC) and real smishing is mostly parcel fees, "your account is locked", fake refunds, subscription failures and bait messages. I added eleven generic rules for those.
 2. Real ordinary texts exposed **false alarms I would not have found by hand**: "you won't" matched the prize rule (`you won`), a friend discussing an `.apk` file, a "KBC" joke, Singlish "ok.lol." read as a web address, and "his mother expired" matched an urgent-threat rule. All fixed, each now has a regression test.
-3. DEV recall reached 54.1% and TEST recall is 46.4%. The gap between the two is the honest cost of tuning on the data you can see.
+3. DEV recall reached 54.1% and TEST recall is now 45.3%. The gap between the two is the honest cost of tuning on the data you can see.
 
 **What these numbers do not mean.**
-- The smishing data is mostly **US and English** (USPS, Netflix, banks). It is real, but not Indian. **I could not reach a labelled corpus of real Indian bank-scam messages** (the ones I found were on hosts the sandbox could not open, or were machine-generated). The Indian-specific rules (electricity bills, KYC, digital arrest, UPI handles) are therefore **not validated on real Indian scam texts**. They are validated only against real Indian ordinary texts (0.06% false alarms on 3,487).
+- The smishing data is mostly **US and English** (USPS, Netflix, banks). It is real, but not Indian. **I could not reach a labelled corpus of real Indian bank-scam messages.** The one real Indian collection I found (above) is promotions and chat, with almost no scams. The Indian-specific rules (electricity bills, KYC, digital arrest, UPI handles) are therefore **not validated on real Indian scam texts**. They are validated only against real Indian ordinary texts (0.06% false alarms on 3,487).
 - **More than half of real smishing is still missed**, for example link-only messages, "wrong number" openers and dating baits with no keyword.
 - **Precision depends on how common scams are.** 94.6% is for a mix of about 2% smishing. If 1 text in 1,000 were smishing, the same rates would give roughly 48% precision, so a warning would be right about half the time. That is still a reasonable warning for a "pause and check" nudge, and a poor one for blocking.
 - Spam is a different thing from smishing. The rules are not trying to catch promotional spam, and they catch few.

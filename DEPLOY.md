@@ -98,6 +98,14 @@ A browser frontend cannot hold an API key safely: anything in `static/config.js`
 
 **Files on a free host are usually erased on redeploy.** That includes the audit log and the state snapshot. For anything you need to keep, attach a persistent disk and point `FH_AUDIT_DB` at it.
 
+## Demo day on a free server
+
+A free Render server sleeps after about 15 idle minutes, takes 30 to 50 seconds to wake, and forgets downloaded files on every restart. Three things make that survivable:
+
+1. **Keep it awake.** `.github/workflows/keepalive.yml` pings `/api/health` every 10 minutes. It is free on a public repository; on a private one it spends your Actions minutes, so disable it when the event is over.
+2. **Fetch the real text collections at boot.** Set `FH_PREWARM=1` in the Render environment (already in `render.yaml` for new blueprints). Add `FH_PREWARM_ULB=1` to fetch the 144 MB card file too. Without it, the Run buttons on the Real data tab download what is missing themselves.
+3. **Rehearse 10 minutes before.** `FH_API_KEY=<your key> python tools/preflight.py` wakes the server and walks the path a judge would: Scam Shield, the real-data downloads, both benchmarks and the card replay. Every line should say PASS. A crash from the 512 MB limit shows up here, not on stage.
+
 ## Before real traffic
 
 - **This is trained on synthetic data.** Retrain on your own history (`fh/train.py` is the template), and expect to rebuild the cost settings with your finance team.

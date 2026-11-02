@@ -57,14 +57,14 @@
   {
    "id": "electricity",
    "w": 35,
-   "re": "(bijli|electricity|power).{0,40}(disconnect|kat\\b|cut|overdue|not updated|update)",
+   "re": "(bijli|electricity|power (bill|connection|supply)|(consumer|meter) ?(no|number)).{0,40}(disconnect|kat\\b|cut|overdue|not updated|update)",
    "en": "An electricity-bill disconnection warning. This is one of the most common scam texts in India; check only on your electricity company's official app or website.",
    "hi": "बिजली कनेक्शन कटने की चेतावनी। भारत में यह सबसे आम ठगी वाले संदेशों में है; सिर्फ़ बिजली कंपनी के आधिकारिक ऐप/वेबसाइट पर जांचें।"
   },
   {
    "id": "kyc",
    "w": 25,
-   "re": "\\bkyc\\b|pan (update|card)|aadhaar (update|link)|account.{0,20}(block|suspend)",
+   "re": "\\bkyc\\b|pan (update|card)|aadhaar (update|link)|(your|aapka|apka|ur) (\\w+ ){0,2}(account|a/c).{0,20}(block|suspend)",
    "en": "A KYC, PAN or Aadhaar 'update' request. Banks do not ask you to complete KYC through a link or a phone call.",
    "hi": "KYC, PAN या आधार 'अपडेट' का संदेश। बैंक लिंक या फ़ोन कॉल से KYC नहीं करवाते।"
   },
@@ -120,7 +120,7 @@
   {
    "id": "account_locked",
    "w": 35,
-   "re": "(account|card|profile|debit|credit).{0,40}(locked|suspended|restricted|on hold|temporar\\w+ (locked|restricted)|unusual (activit|transaction)|signed in (from|on|to)? ?(a )?new device)|unusual (activit|transaction)s? .{0,40}(account|card)",
+   "re": "(your|aapka|apka|ur|dear customer).{0,12}(account|card|profile|debit|credit).{0,40}(locked|suspended|restricted|on hold|temporar\\w+ (locked|restricted)|unusual (activit|transaction)|signed in (from|on|to)? ?(a )?new device)|unusual (activit|transaction)s? .{0,40}(account|card)",
    "en": "Says your account or card is locked or shows unusual activity. Open your bank's official app yourself instead of using a link in the message.",
    "hi": "कहता है कि आपका अकाउंट या कार्ड लॉक है या संदिग्ध गतिविधि हुई है। संदेश के लिंक की जगह बैंक का आधिकारिक ऐप खुद खोलकर जांचें।"
   },

@@ -142,7 +142,8 @@ async function drift() {
 /* ---- stream + controls ---- */
 function connect() {
   const es = new EventSource((window.FH_API || "") + "/api/stream");
-  es.onopen = () => { $("#lv").classList.add("on"); };
+  const nap = setTimeout(() => { $("#clk").textContent = "waking the free server, up to 50 s"; }, 4000);      // a free Render server sleeps when idle
+  es.onopen = () => { clearTimeout(nap); $("#lv").classList.add("on"); };
   es.onerror = () => { $("#lv").classList.remove("on"); $("#clk").textContent = "reconnecting"; };
   es.onmessage = e => {
     const m = JSON.parse(e.data);

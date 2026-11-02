@@ -34,7 +34,7 @@ function shieldTab() {
   $("#sh-go").onclick = runShield;
   const real = $("#sh-real");
   if (window.FH_DEMO) { real.replaceChildren(el("span", { class: "note" }, "Real messages are loaded by the live backend (Real data tab). Not available in this static demo.")); return; }
-  const ks = [["smish", "A real smishing text"], ["spam", "A real SMS spam"], ["ham", "A real ordinary SMS"], ["india", "A real SMS from India"]];
+  const ks = [["smish", "A real smishing text"], ["spam", "A real SMS spam"], ["ham", "A real ordinary SMS"], ["india", "A real SMS from India"], ["india_spam", "A real Indian spam SMS"]];
   real.replaceChildren(...ks.map(([k, n]) => el("button", { class: "chip", onclick: () => realSample(k) }, n)));
 }
 async function realSample(kind) {

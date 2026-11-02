@@ -8,3 +8,5 @@ services:
     envVars:
       - key: FH_ORIGINS
         value: "*"
+      - key: FH_PREWARM          # fetch the small real collections at boot so the Real data tab is ready after a restart
+        value: "1"

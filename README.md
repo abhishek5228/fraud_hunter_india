@@ -5,7 +5,7 @@
 **A real-time risk engine for Indian digital payments. It chooses the cheapest safe action for every UPI, IMPS, card and ATM payment, and says why in words an analyst or a customer can act on.**
 
 [![tests](https://img.shields.io/github/actions/workflow/status/antrikakashyap/fraud_hunter/ci.yml?branch=main&style=for-the-badge&label=tests&logo=githubactions&logoColor=white)](https://github.com/antrikakashyap/fraud_hunter/actions)
-[![147 tests](https://img.shields.io/badge/tests-147%20passing-2ec866?style=for-the-badge)](#tests)
+[![150 tests](https://img.shields.io/badge/tests-150%20passing-2ec866?style=for-the-badge)](#tests)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab?style=for-the-badge&logo=python&logoColor=white)](requirements.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b48cf2?style=for-the-badge)](LICENSE)
 [![Data: synthetic](https://img.shields.io/badge/Data-synthetic-e0a21a?style=for-the-badge)](#what-is-and-is-not-real)
@@ -116,7 +116,7 @@ python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\a
 pip install -r requirements.txt
 python -m fh.train                          # ~35 s: simulates 42 days, trains, evaluates, saves artifacts/
 python -m uvicorn fh.api:app --port 8000    # now open http://localhost:8000
-python -m pytest -q tests                   # 147 tests
+python -m pytest -q tests                   # 150 tests
 ```
 
 No Python? `docker build -t fraud-hunter . && docker run -p 8000:8000 fraud-hunter`. No server at all? Open [`docs/index.html`](docs/index.html): a single file that replays real recorded decisions from disk.
@@ -503,7 +503,7 @@ last month bill is not updated. Call 9876543210 immediately.
 
 **On a live server it also does three things the demo cannot:** asks the engine whether the payee has many first-time senders or fraud complaints; with `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` set, asks Razorpay who the handle is **registered to** and flags a name that does not match the QR (a QR that says "State Electricity Board" but the handle belongs to "Rakesh Kumar Yadav"); and accepts guarded complaint reports (`POST /api/shield/report`) about a handle.
 
-**Tested on real text messages** (see [docs/BENCHMARKS.md](docs/BENCHMARKS.md)). On a held-out half of about 27,000 real messages it flags **46.4% of real smishing** (it was 7.8% before real data showed me what scams look like) while falsely flagging **0.05% of ordinary texts** (0.06% of 3,487 real texts sent from India). More than half of real smishing is still missed, the smishing data is mostly US, and **the Indian-specific rules are not validated on real Indian scam texts** because I could not reach such a corpus.
+**Tested on real text messages** (see [docs/BENCHMARKS.md](docs/BENCHMARKS.md)). On a held-out half of about 27,000 real messages it flags **45.3% of real smishing** (it was 7.8% before real data showed me what scams look like) while falsely flagging **0.03% of ordinary texts** (0.06% of 3,487 real texts sent from India, and none of 664 real Indian telecom messages, though I fixed nine false alarms on that file, so that last result is not held out). More than half of real smishing is still missed, the smishing data is mostly US, and **the Indian-specific rules are not validated on real Indian scam texts** because the only real Indian collection I could fetch is promotions and chat, with almost no scams.
 
 **Honest limit.** It reads wording and structure. Without the Razorpay lookup it **cannot tell who owns a handle**, so it never says "safe". The best it says is "no known scam pattern found", and explains why that is not a guarantee. The Razorpay lookup is untested against the live API (the feature must be enabled on your account).
 
@@ -939,7 +939,7 @@ The tuned baselines were fitted on this very period, which flatters them. The am
 | Backtest on the 45-day sample (35,575 scored payments) | 99.0% of fraud caught, 3.84% of good customers touched, cost about ₹0.97 lakh against ₹1.04 crore for approving everything |
 | Red team, shipped model | attacker's median haul ₹2.56 lakh per customer; ₹35,400 after one round of hardening |
 | Speed | about 9,000 to 13,000 payments per second on one Python thread, p99 about 0.25 ms |
-| Tests | 147 |
+| Tests | 150 |
 
 ## What failed first
 
@@ -967,7 +967,7 @@ The design came after several wrong turns, and they are why it looks the way it 
 - **Shared kiosk phones** still draw about 14% friction.
 - **"Never seen on the platform" is stronger in the simulator than it would be in reality**, because every legitimate payee here is an existing customer.
 - The **SIM-change signal** assumes telecom data that only some banks receive; the simulator reflects that with 60% coverage.
-- **Scam Shield misses most generic smishing.** 46.4% of real smishing flagged; link-only texts, "wrong number" openers and dating baits slip through. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+- **Scam Shield misses most generic smishing.** 45.3% of real smishing flagged; link-only texts, "wrong number" openers and dating baits slip through. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 - **Red team:** hardening beyond round 1 does not reliably help, and costs friction.
 - **Razorpay** is merchant-side, and a webhook arrives after authorisation.
 - Several integrations were tested against **fakes only**: the Razorpay VPA lookup, the Gemini and Claude calls, Telegram and IPinfo from the sandbox, and the Docker build.
@@ -1052,7 +1052,7 @@ fh/
 web/                dashboard: no build step (index.html, lib.js, live.js, tabs.js, shield.js, demo.js, style.css)
 sdk/                python/ and js/ clients
 tools/              site and demo builders, OpenAPI export, load test, LLM check, video
-tests/              147 tests
+tests/              150 tests
 docs/               screenshots, demo.mp4, openapi.json, Postman collection, static demo
 ```
 

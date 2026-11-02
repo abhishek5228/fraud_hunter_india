@@ -43,6 +43,10 @@ DATASETS = {
                     url=os.environ.get("FH_URL_NUS_SMS", GH + "Joshoneill6649/smishing-nlp-josh-oneill/main/data/raw/NUS_SMS_Corpus.json"),
                     expect=dict(rows=40000), source="National University of Singapore SMS Corpus",
                     note="Tens of thousands of real, ordinary text messages, thousands of them sent from India. Used only to measure false alarms."),
+    "india_sms": dict(title="Indian Telecom SMS Spam Collection", file="india_sms.csv", max_mb=8, kind="texts",
+                      url=os.environ.get("FH_URL_INDIA_SMS", GH + "junioralive/india-spam-sms-classification/main/dataset/spam_ham_india.csv"),
+                      expect=dict(rows=2000), source="junioralive, India Spam SMS Classification (MIT licence), real Indian telecom messages",
+                      note="About 2,000 real SMS from India: bank, telecom and shop promotions, plus ordinary chat. Its spam is mostly promotion, not fraud."),
 }
 RECORDED = dict(  # measured on 2026-11-01 with scikit-learn baselines; shown next to live runs for context. See docs/BENCHMARKS.md.
     ulb_time=[("Additive model (this project)", .980, .760, .667, .840, 86.7), ("Logistic regression (this project)", .971, .704, .600, .792, 86.7),
@@ -105,6 +109,12 @@ def load_texts(i, p):
                 lab, t = l.rstrip("\n").split("\t", 1)
                 (ham if lab == "ham" else spam if lab == "spam" else set()).add(t.strip())
         return dict(ham=sorted(ham), spam=sorted(spam))
+    if i == "india_sms":
+        ham, spam = set(), set()
+        for r in csv.reader(open(p, encoding="utf-8", errors="replace")):
+            if len(r) >= 2 and r[0].strip() and r[1].strip().lower() in ("ham", "spam"):
+                (ham if r[1].strip().lower() == "ham" else spam).add(r[0].strip())
+        return dict(in_ham=sorted(ham), in_spam=sorted(spam))
     s = open(p, encoding="utf-8", errors="replace").read()           # NUS: parse message by message so memory stays near the file size
     k = s.index('"message"')
     k = s.index("[", k) + 1
@@ -243,6 +253,24 @@ def _boot(y, p, k=200, seed=1):
 STATE = {}      # the last ULB run's test rows and scores, for replay
 
 
+def prewarm(also_ulb=False):
+    """Run once at boot (FH_PREWARM=1): fetch the small collections so the Real data tab is ready after a restart. A free server
+    forgets its files, and a judge should not have to wait for downloads. The 144 MB card file is fetched too only with FH_PREWARM_ULB=1."""
+    ids = ["smishtank", "uci_sms", "india_sms", "nus_sms"] + (["ulb"] if also_ulb else [])
+    if not _LOCK.acquire(timeout=5):
+        return
+    try:
+        for i in ids:
+            if not os.path.exists(path(i)):
+                try:
+                    fetch(i)
+                    print("prewarm: fetched", i)
+                except Exception as e:
+                    print("prewarm: could not fetch %s: %s" % (i, type(e).__name__))
+    finally:
+        _LOCK.release()
+
+
 def ensure(ids, progress, optional=()):
     """A free server forgets its files whenever it restarts, so a benchmark fetches what is missing, from the fixed source, first.
     A failed download of an optional collection is skipped; a required one stops the benchmark with the reason."""
@@ -327,7 +355,7 @@ def _split_texts(d, seed):
 
 def load_all_texts():
     out = {}
-    for i in ("smishtank", "uci_sms", "nus_sms"):
+    for i in ("smishtank", "uci_sms", "nus_sms", "india_sms"):
         if os.path.exists(path(i)):
             out.update(load_texts(i, path(i)))
     return out
@@ -335,14 +363,14 @@ def load_all_texts():
 
 def bench_shield(progress=lambda *a: None, seed=7):
     from . import shield
-    ensure(["smishtank", "uci_sms", "nus_sms"], progress, optional=("nus_sms",))
+    ensure(["smishtank", "uci_sms", "nus_sms", "india_sms"], progress, optional=("nus_sms", "india_sms"))
     progress(0.05, "reading the message collections")
     d = load_all_texts()
     if not d.get("smish"):
         raise ValueError("the smishing collection is not on the server yet")
     progress(0.2, "splitting into development and test halves")
     test = _split_texts(d, seed)[1]
-    groups = [("smish", "Real smishing (Smishtank)"), ("spam", "Real SMS spam (UCI)"), ("ham", "Real ordinary SMS (UCI)"), ("nus", "Real ordinary SMS (NUS corpus)"), ("nus_in", "  of which sent from India")]
+    groups = [("smish", "Real smishing (Smishtank)"), ("spam", "Real SMS spam (UCI)"), ("ham", "Real ordinary SMS (UCI)"), ("nus", "Real ordinary SMS (NUS corpus)"), ("nus_in", "  of which sent from India"), ("in_ham", "Real ordinary Indian SMS (Indian Telecom collection)"), ("in_spam", "Real Indian spam, mostly promotions (not scams)")]
     rows, flagged = [], {}
     for n, (k, label) in enumerate(groups):
         v = test.get(k)
@@ -353,7 +381,7 @@ def bench_shield(progress=lambda *a: None, seed=7):
         flagged[k] = lv
         rows.append(dict(group=label, key=k, n=len(v), caution=sum(1 for x in lv if x != "none") / len(v), danger=sum(1 for x in lv if x == "danger") / len(v)))
     pos = flagged.get("smish", [])
-    neg = (flagged.get("ham", []) + flagged.get("nus", []))
+    neg = (flagged.get("ham", []) + flagged.get("nus", []) + flagged.get("in_ham", []))
     tp, fp = sum(1 for x in pos if x != "none"), sum(1 for x in neg if x != "none")
     return dict(dataset="shield", rows=rows, rules=len(shield.RULES), seed=seed, n_smish=len(pos), n_ordinary=len(neg),
                 recall=tp / len(pos) if pos else None, false_alarm=fp / len(neg) if neg else None, precision=tp / (tp + fp) if tp + fp else None,
@@ -362,7 +390,7 @@ def bench_shield(progress=lambda *a: None, seed=7):
 
 def sample_text(kind, rng=random):
     """A random real message, with its true label, for trying in Scam Shield."""
-    key = dict(smish=("smish", "smishing"), spam=("spam", "spam"), ham=("ham", "ordinary"), india=("nus_in", "ordinary, sent from India"))[kind]
+    key = dict(smish=("smish", "smishing"), spam=("spam", "spam"), ham=("ham", "ordinary"), india=("nus_in", "ordinary, sent from India"), india_spam=("in_spam", "Indian spam, mostly a promotion (not necessarily a scam)"))[kind]
     d = load_all_texts()
     v = d.get(key[0])
     if not v:

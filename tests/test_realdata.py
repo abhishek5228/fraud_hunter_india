@@ -49,7 +49,7 @@ def wait(c, jid):
 def test_status_says_missing_then_present_and_never_calls_a_small_file_verified(client):
     c, d = client
     ls = {x["id"]: x for x in c.get("/api/realdata").json()["datasets"]}
-    assert set(ls) == {"ulb", "smishtank", "uci_sms", "nus_sms"} and not any(x["present"] for x in ls.values())
+    assert set(ls) == {"ulb", "smishtank", "uci_sms", "nus_sms", "india_sms"} and not any(x["present"] for x in ls.values())
     fake_ulb(d / "creditcard.csv")
     x = {y["id"]: y for y in c.get("/api/realdata?verify=true").json()["datasets"]}["ulb"]
     assert x["present"] and x["counts"] == {"rows": 3000, "pos": 60} and x["verified"] is False       # not the published 284,807 / 492
@@ -189,3 +189,27 @@ def test_live_tab_has_a_real_data_source_switch():
     html = open("web/index.html").read()
     js = open("web/realdata.js").read()
     assert 'data-src="real"' in html and 'id="real-live"' in html and "function liveSource" in js and "/api/realdata/run/ulb" in js
+
+
+def test_indian_telecom_collection_is_parsed_into_ham_and_spam(client):
+    c, d = client
+    rows = ["Msg,Label"] + ['"Hi, see you at lunch %d",ham' % i for i in range(60)] + ['"Win a free recharge now http://x.in/%d",spam' % i for i in range(10)] + ["Hi, see you at lunch 3,ham", ",ham", "orphan"]
+    (d / "india_sms.csv").write_text("\n".join(rows) + "\n")
+    t = rd.load_texts("india_sms", rd.path("india_sms"))
+    assert len(t["in_ham"]) == 60 and len(t["in_spam"]) == 10          # duplicates and empty rows are dropped
+    assert c.get("/api/realdata/sample?kind=india_spam").json()["truth"].startswith("Indian spam")
+
+
+def test_prewarm_fetches_only_what_is_missing_and_survives_failures(client, monkeypatch):
+    c, d = client
+    got = []
+    def fake(i, prog=None):
+        got.append(i)
+        if i == "nus_sms":
+            raise OSError("down")
+    monkeypatch.setattr(rd, "fetch", fake)
+    open(rd.path("uci_sms"), "w").write("x")
+    rd.prewarm()
+    assert got == ["smishtank", "india_sms", "nus_sms"]                # present files are skipped, and one failure does not stop the rest
+    assert rd._LOCK.acquire(blocking=False)                            # and the one-job lock is released afterwards
+    rd._LOCK.release()

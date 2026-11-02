@@ -1,6 +1,7 @@
 """FastAPI service: scoring API, SSE live stream, policy lab, model card, analyst feedback."""
 import os
 import json
+import threading
 import time
 import hmac
 import pickle
@@ -68,6 +69,8 @@ async def life(app):
     S.update(g=g, w=w, rep=rep, h=h, eng=eng, sim=Sim(eng, w, T0 + train.DAYS * DAY), subs=set(), fb=dict(fraud=0, legit=0, blocks=0),
              ver=model_version(), aud=audit.Audit(os.environ.get("FH_AUDIT_DB", os.path.join(train.ART, "audit.db"))), reviewed=set(), bt={}, ip=itg.IpIntel(), nt=itg.Notifier(), hook=dict(ok=0, bad_sig=0, ignored=0))
     task = asyncio.create_task(pump())
+    if os.environ.get("FH_PREWARM") == "1":
+        threading.Thread(target=rd.prewarm, kwargs=dict(also_ulb=os.environ.get("FH_PREWARM_ULB") == "1"), daemon=True).start()
     yield
     task.cancel()
     if os.environ.get("FH_STATE", "1") != "0":
@@ -838,8 +841,8 @@ async def realdata_replay(req: Request, offset: int = 0, n: int = 25, to_fraud: 
 @app.get("/api/realdata/sample")
 async def realdata_sample(req: Request, kind: str = "smish"):
     _limit(req, 60, "|sample")
-    if kind not in ("smish", "spam", "ham", "india"):
-        raise HTTPException(422, "kind must be smish, spam, ham or india")
+    if kind not in ("smish", "spam", "ham", "india", "india_spam"):
+        raise HTTPException(422, "kind must be smish, spam, ham, india or india_spam")
     try:
         r = await run_in_threadpool(rd.sample_text, kind)
     except ValueError as e:

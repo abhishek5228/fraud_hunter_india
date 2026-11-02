@@ -122,7 +122,7 @@ function renderDemoReal() {
   $("#rd-ulb").replaceChildren(el("div", { class: "note" }, "Recorded on 2026-11-01 on the real ULB card-fraud data (284,807 transactions, 492 fraud; test = the latest 20%, 75 fraud). Same split for every model."),
     table(["Model", "AUC", "Average precision", "95% interval", "Caught at 1% false alarms"], [["Additive model (this project)", "0.980", "0.760", "0.667 to 0.840", "86.7%"], ["Logistic regression (this project)", "0.971", "0.704", "0.600 to 0.792", "86.7%"], ["Logistic regression (scikit-learn)", "0.973", "0.706", "0.609 to 0.792", "86.7%"], ["Random forest (scikit-learn)", "0.941", "0.792", "0.705 to 0.870", "86.7%"], ["Gradient boosting (scikit-learn, untuned)", "0.769", "0.475", "0.360 to 0.592", "70.7%"]]));
   $("#rd-replay").replaceChildren(el("div", { class: "empty" }, note));
-  $("#rd-shield").replaceChildren(el("div", { class: "note" }, "Recorded on real messages (test half): 46.4% of 528 real smishing texts flagged (7.8% before real data guided the rules), 0.05% of about 26,600 real ordinary texts falsely flagged, 0.06% of 3,487 real texts sent from India. Details in docs/BENCHMARKS.md."));
+  $("#rd-shield").replaceChildren(el("div", { class: "note" }, "Recorded on real messages (test half): 45.3% of 528 real smishing texts flagged (7.8% before real data guided the rules), 0.04% of about 27,200 real ordinary texts falsely flagged, 0.06% of 3,487 real texts sent from India, none of 664 real Indian telecom messages (that last file was used to fix nine false alarms, so it is not held out). Details in docs/BENCHMARKS.md."));
 }
 
 /* Live ops on real data: the same replay, shown on the first tab. There is no public stream of real Indian payments, so this is the

@@ -7,11 +7,14 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 - Per-IP limits on the Real data download, upload, benchmark, replay and sample endpoints, so a server without `FH_API_KEY` cannot be used to start repeated large jobs; replay size is capped.
 
 ### Fixed
+- Scam Shield raised a caution on friends talking about a power cut or "my account is blocked". Real Indian telecom messages exposed nine such false alarms; three rules now need scam wording (a bill or connection, or "your account"). Smishing recall moved from 46.4% to 45.3%.
 - The Real data benchmarks now download any missing collection from their fixed source before running. A free server forgets its files on every restart, which left the Run buttons stuck on 'download first'.
 - The real card-fraud benchmark was killed by the 512 MB limit on the free Render plan (it held the whole file as Python floats, then three copies). The loader now fills numpy arrays in blocks and the table is freed before the models are fitted: peak memory fell from about 280 MB to about 220 MB in a local test.
 - Mule-graph hub ids were 4 characters, so two payees could share one and a ruling could hit the wrong payee. Ids are now 8 characters, with a regression test.
 
 ### Added
+- Demo-day tools for a free server: a keep-alive workflow, `FH_PREWARM` to fetch the real text collections at boot, a "waking the free server" message in the console, and `tools/preflight.py` that wakes the server and walks the judge's path (run it 10 minutes before).
+- A fifth real collection on the Real data tab: the Indian Telecom SMS Spam Collection (about 2,000 real Indian messages), used to measure false alarms on real Indian bank, telecom and chat messages.
 - Live ops can show real data: a switch above the feed replays the real card transactions in time order, scored one by one, with the true outcome beside each. The simulator stays the default.
 - A 30-second summary at the top of the README.
 - **Real data tab** in the console: download real public datasets from their sources (or upload your own), run the card-fraud and Scam Shield benchmarks, replay real card transactions with their true labels, and try real text messages in Scam Shield. A provenance strip on every tab says what is simulated, real or yours.
@@ -23,7 +26,7 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 ### Fixed
 - Buttons given a boolean `disabled: false` were rendered disabled (the helper wrote the string "false"); this had left the cross-bank export and import buttons permanently disabled.
 - Scam Shield false alarms found on real ordinary texts: `you won't`, a friend talking about an `.apk` file, a KBC joke, `.lol` slang read as a web address, `expired` about a person.
-- Scam Shield caught only 7.8% of real smishing before the generic rules; now 46.4% on a held-out half.
+- Scam Shield caught only 7.8% of real smishing before the generic rules; now 45.3% on a held-out half (re-measured 2026-11-02).
 
 ### Also
 - Small documentation, examples, tests and tooling improvements.
