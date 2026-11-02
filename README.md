@@ -851,7 +851,7 @@ The repository root's `docs/` folder is Pages-ready: Settings → Pages → Depl
 
 ## 51. Demo video and script
 
-[`docs/demo.mp4`](docs/demo.mp4): a captioned walkthrough filmed from the real UI. [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md): a talk track, a 30-second Live wire scene, and prepared answers to the hard questions ("why synthetic?", "why not logistic regression?", "is it safe for real money?"). [`docs/RESUME_BULLETS.md`](docs/RESUME_BULLETS.md): what you can honestly claim, and what not to.
+[`docs/demo.mp4`](docs/demo.mp4): a captioned walkthrough of about 7 minutes, filmed from the full backend with real data (no narration; every explanation is a caption at the bottom of the screen). It covers a live attack and why it was stopped, the Real data tab, the real card replay, Scam Shield, the mule graph, the Razorpay path, backtest, red team, the policy lab and the limits. [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md): a talk track, a 30-second Live wire scene, and prepared answers to the hard questions ("why synthetic?", "why not logistic regression?", "is it safe for real money?"). [`docs/RESUME_BULLETS.md`](docs/RESUME_BULLETS.md): what you can honestly claim, and what not to.
 
 ## 52. One-line commands
 

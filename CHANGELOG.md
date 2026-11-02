@@ -13,6 +13,7 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 - Mule-graph hub ids were 4 characters, so two payees could share one and a ruling could hit the wrong payee. Ids are now 8 characters, with a regression test.
 
 ### Added
+- A new captioned demo video (`docs/demo.mp4`, about 7 minutes) filmed from the full backend: the Real data tab, the real card replay, Scam Shield, mule graph and the Razorpay path are in it. `tools/make_video.py` records it against a local server.
 - **Shadow mode** (`FH_SHADOW=1`): the engine scores every payment sent to `/api/score`, the webhook and the load test, but tells the caller "approve" and records what it would have done; `GET /api/shadow` reports the counts and the amount it would have stopped. This is the safe way to run it beside a real system before it is allowed to block anything.
 - **A learned part for Scam Shield**: a small linear model trained on real public SMS (`tools/train_shield_model.py`, DEV half only) shared word for word with the browser. Real smishing flagged on the TEST half: 45.3% to 63.6% (35.1% to 55.7% on wording unlike the training texts), with ordinary-text false alarms still 0.04%.
 - Demo-day tools for a free server: a keep-alive workflow, `FH_PREWARM` to fetch the real text collections at boot, a "waking the free server" message in the console, and `tools/preflight.py` that wakes the server and walks the judge's path (run it 10 minutes before).
