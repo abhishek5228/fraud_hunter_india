@@ -63,7 +63,9 @@ python tools/build_site.py --demo
 
 (`capture_scenarios.py` needs `pip install playwright && playwright install chromium`.)
 
-## D. AWS App Runner (no sleeping, 2 GB memory)
+## D. AWS (no sleeping, 2 GB memory)
+
+App Runner is closed to accounts created after 30 April 2026 (`can't create new App Runner services`). Use ECS Express Mode instead: `tools\deploy_aws_ecs.cmd KEY ORIGIN`. It reuses the same image and keeps one task. Cost is about 25 to 40 USD a month (the load balancer is the main part), so delete it after the demo: `aws ecs delete-express-gateway-service`. The App Runner steps below only work on accounts that already used it.
 
 The repo already has a `Dockerfile`, so App Runner runs it as is. From Windows CMD, with Docker Desktop running and `aws configure` done:
 

@@ -1,0 +1,18 @@
+{
+  "serviceName": "fraud-hunter",
+  "executionRoleArn": "__EXE__",
+  "infrastructureRoleArn": "__INF__",
+  "healthCheckPath": "/api/health",
+  "primaryContainer": {
+    "image": "__IMG__",
+    "containerPort": 8000,
+    "environment": [
+      { "name": "FH_API_KEY", "value": "__KEY__" },
+      { "name": "FH_ORIGINS", "value": "__ORG__" },
+      { "name": "FH_PREWARM", "value": "1" }
+    ]
+  },
+  "cpu": "1024",
+  "memory": "2048",
+  "scalingTarget": { "minTaskCount": 1, "maxTaskCount": 1 }
+}

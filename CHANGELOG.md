@@ -4,6 +4,8 @@ All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com
 
 ## [Unreleased]
 ### Added
+- `tools/deploy_aws_ecs.cmd`: deploy to AWS ECS Express Mode, because App Runner no longer accepts new accounts.
+### Added
 - `tools/deploy_aws.cmd` and `tools/aws/*.json`: one command from Windows CMD to put the container on AWS App Runner (ECR image, pull role, one fixed instance, 1 vCPU / 2 GB). DEPLOY.md section D.
 ### Security
 - Per-IP limits on the Real data download, upload, benchmark, replay and sample endpoints, so a server without `FH_API_KEY` cannot be used to start repeated large jobs; replay size is capped.
