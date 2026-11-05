@@ -1,0 +1,25 @@
+{
+  "ServiceName": "fraud-hunter",
+  "SourceConfiguration": {
+    "AuthenticationConfiguration": { "AccessRoleArn": "__ROLE__" },
+    "AutoDeploymentsEnabled": false,
+    "ImageRepository": {
+      "ImageIdentifier": "__IMG__",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "8000",
+        "RuntimeEnvironmentVariables": {
+          "FH_API_KEY": "__KEY__",
+          "FH_ORIGINS": "__ORG__",
+          "FH_PREWARM": "1"
+        }
+      }
+    }
+  },
+  "InstanceConfiguration": { "Cpu": "1024", "Memory": "2048" },
+  "HealthCheckConfiguration": {
+    "Protocol": "HTTP", "Path": "/api/health",
+    "Interval": 10, "Timeout": 5, "HealthyThreshold": 1, "UnhealthyThreshold": 5
+  },
+  "AutoScalingConfigurationArn": "__ASC__"
+}

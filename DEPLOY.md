@@ -63,6 +63,16 @@ python tools/build_site.py --demo
 
 (`capture_scenarios.py` needs `pip install playwright && playwright install chromium`.)
 
+## D. AWS App Runner (no sleeping, 2 GB memory)
+
+The repo already has a `Dockerfile`, so App Runner runs it as is. From Windows CMD, with Docker Desktop running and `aws configure` done:
+
+```cmd
+tools\deploy_aws.cmd YOUR_API_KEY https://your-frontend-origin ap-south-1
+```
+
+It creates the ECR repo, pushes the image, makes the pull role, fixes the service at **one instance** (the feature store lives in memory), and prints the service URL. Then run `tools/preflight.py` against that URL. Cost is roughly 5 to 15 USD a month for 1 vCPU / 2 GB. Delete with `aws apprunner delete-service`. For real keys, move `FH_API_KEY` into Secrets Manager instead of a plain variable.
+
 ## Wiring it into a real payment flow
 
 Scoring is two phases, because a challenged payment is not yet a trusted one:
