@@ -3,6 +3,8 @@
 All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com).
 
 ## [Unreleased]
+### Added
+- `docs/pitch/FraudHunter_pitch.pdf`: a 12 slide pitch deck, linked from the README.
 ### Changed
 - README: an isometric 3D picture of the stack (`docs/assets/iso.svg`), a Runs on AWS badge and a Run it on AWS section.
 ### Added

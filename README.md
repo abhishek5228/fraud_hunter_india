@@ -123,6 +123,7 @@ Every number carries its source and its caveat in the card. The short version: t
 | **Frontend for the hosted API** | https://antrikakashyap.github.io/fraud_hunter/live/ | The same console served from GitHub Pages, talking to the Render API. |
 | **API reference** | https://fraud-hunter-api.onrender.com/docs | Interactive docs for every endpoint. |
 | **Video** | [`docs/demo.mp4`](docs/demo.mp4) | About 7 minutes, captions only, every major feature. |
+| **Pitch deck** | [`docs/pitch/FraudHunter_pitch.pdf`](docs/pitch/FraudHunter_pitch.pdf) | 12 slides: the problem, the idea, the real numbers with their limits, and the ask. |
 
 **Things to click first:** **Launch attack, then Vishing with screen-share** (Live ops) · paste an SMS on **Scam Shield** · open **Mule graph** · press **Run load test** on **Live wire** · on **Real data**, press **Run on the real card-fraud data**, then flip Live ops to **Real card data**.
 
