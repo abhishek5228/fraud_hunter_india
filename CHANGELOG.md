@@ -3,6 +3,8 @@
 All dates are 2026. Format follows [Keep a Changelog](https://keepachangelog.com).
 
 ## [Unreleased]
+### Changed
+- README: an isometric 3D picture of the stack (`docs/assets/iso.svg`), a Runs on AWS badge and a Run it on AWS section.
 ### Added
 - `tools/deploy_aws_ecs.cmd`: deploy to AWS ECS Express Mode, because App Runner no longer accepts new accounts.
 ### Added

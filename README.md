@@ -15,6 +15,7 @@
 
 [![Open the live console](https://img.shields.io/badge/Open%20the%20live%20console-fraud--hunter--api.onrender.com-3b57f5?style=for-the-badge&logo=render&logoColor=white)](https://fraud-hunter-api.onrender.com/)
 [![Try the demo, no server](https://img.shields.io/badge/Try%20the%20demo-GitHub%20Pages-0f8a66?style=for-the-badge&logo=github&logoColor=white)](https://antrikakashyap.github.io/fraud_hunter/)
+[![Runs on AWS ECS](https://img.shields.io/badge/Runs%20on-AWS%20ECS-f09a2f?style=for-the-badge&logo=amazonaws&logoColor=white)](#run-it-on-aws)
 [![Watch the 7 minute video](https://img.shields.io/badge/Watch%20the%20video-7%20minutes-cc2f46?style=for-the-badge&logo=youtube&logoColor=white)](docs/demo.mp4)
 
 <sub>The console on Render runs the real engine. It is on a free plan that sleeps when idle, so the first load can take 30 to 50 seconds. The Pages demo needs no server: it replays recorded decisions. Interactive API docs: [`/docs`](https://fraud-hunter-api.onrender.com/docs). In Hindi: [हिन्दी README](README.hi.md).</sub>
@@ -85,6 +86,12 @@ The fourth idea is the one people find surprising, so here it is drawn. The same
 | **STEP-UP** | Ask the customer to prove it is them (OTP or in-app confirmation) before releasing the money. | ₹22,000 card payment, first time on a brand-new phone, to a shop never paid before. |
 | **DECLINE** | Stop it, and tell the customer how to report it. | ₹18,500 to a first-time person while a screen-sharing app is running. |
 
+## The stack, in 3D
+
+<img src="docs/assets/iso.svg" alt="The stack as five 3D slabs: data, engine, Scam Shield and mule graph, API, console. Two cloud cubes show it runs on Render and on AWS." width="100%">
+
+Read it from the bottom up. **Data** feeds the **engine**, which makes the decision. **Scam Shield** and the **mule graph** add what a single payment cannot show. The **API** serves it and the **console** lets you click it. The same container runs on Render (free, sleeps when idle) and on AWS (always on).
+
 ## The project on one page
 
 <img src="docs/assets/layers.svg" alt="The project in layers: data in, the engine, the API, the console, real-world plumbing and sharing between banks" width="100%">
@@ -118,6 +125,19 @@ Every number carries its source and its caveat in the card. The short version: t
 | **Video** | [`docs/demo.mp4`](docs/demo.mp4) | About 7 minutes, captions only, every major feature. |
 
 **Things to click first:** **Launch attack, then Vishing with screen-share** (Live ops) · paste an SMS on **Scam Shield** · open **Mule graph** · press **Run load test** on **Live wire** · on **Real data**, press **Run on the real card-fraud data**, then flip Live ops to **Real card data**.
+
+## Run it on AWS
+
+The repo ships a one-command deploy for **AWS ECS Express Mode** (App Runner no longer takes new accounts). It builds the image, pushes it to ECR, makes the roles and starts one task behind a load balancer with an `https` address. From Windows CMD, with Docker Desktop running and the AWS CLI set up:
+
+```cmd
+git clone https://github.com/abhishek5228/fraud_hunter_india.git
+cd fraud_hunter_india
+tools\deploy_aws_ecs.cmd YOUR_API_KEY https://your-frontend-origin
+python tools\preflight.py
+```
+
+Notes that cost people time: the account must not sit under an organization that blocks ECR; keep **one** task (the feature store lives in memory); the load balancer costs about 25 to 40 USD a month, so delete the service after a demo. Details and the other hosts: [DEPLOY.md](DEPLOY.md).
 
 ## A tour of the console
 
